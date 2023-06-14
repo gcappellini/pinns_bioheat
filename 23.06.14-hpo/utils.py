@@ -420,27 +420,7 @@ def hpo(default_parameters):
 
     b = a.loc[:, ["Config", "Metric", "Error"]].sort_values(by="Error", ascending=True)
 
-    # Convert DataFrame to HTML table
-    html = b.to_html(index=False)
-
-    # Add CSS styles to the HTML table
-    styled_html = """
-    <style>
-    th {
-        text-align: center;
-        border: 1px solid black;
-        border-collapse: collapse;
-    }
-    td {
-        border: 1px solid black;
-        border-top: none !important;
-        border-collapse: collapse;
-    }
-    </style>
-    """ + html
-
-    # Save HTML as an image using imgkit (requires wkhtmltoimage tool)
-    imgkit.from_string(styled_html, f"{output_path}figures/list.png")
+    b.to_excel(f"{output_path}list.xlsx", index=False)
 
     return search_result.x
 
