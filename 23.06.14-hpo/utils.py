@@ -29,10 +29,10 @@ initial = None
 ITERATION = 0
 ij = 0
 
-folder_path = "/home/giuglielmocappellini/Projects/PINNs/23.06.14/"
-# folder_path = ""
+# folder_path = "/home/giuglielmocappellini/Projects/PINNs/23.06.14/"
+folder_path = ""
 
-def esegui_esperimento():
+def inizia_esperimento():
     global gp_seed, dde_seed, initial, ij
 
     if gp_seed is None:
@@ -354,7 +354,6 @@ def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation):
         "Time Spent": time_spent
     }
     df = pd.DataFrame(data, index=[ITERATION])
-    df["Metric"] = df.apply(metric, axis=1)
 
     file_path = f"{output_path}hpo_results.csv"
 
@@ -402,25 +401,6 @@ def hpo(default_parameters):
 
     # Load the CSV file into a pandas DataFrame
     csv_file = f'{output_path}hpo_results.csv'
-    a = pd.read_csv(csv_file)
-    a.to_excel(f'{output_path}data.xlsx', index=False)
-    os.remove(csv_file)
-
-    # set the display format for floats to scientific notation
-    pd.options.display.float_format = '{:.2e}'.format
-
-    # format the desired columns
-    a["Learning Rate"] = a["Learning Rate"].apply(lambda x: '%.2e' % x)
-    # a["Error"] = a["Error"].apply(lambda x: '%.2e' % x)
-    a["Time Spent"] = a["Time Spent"].apply(lambda x: '%.2e' % x)
-    a["Metric"] = a["Metric"].apply(lambda x: '%.2e' % x)
-
-    a["Config"] = a[["Learning Rate", "Num Dense Layers", "Num Dense Nodes",
-                       "Activation"]].apply(lambda x: '[' + ','.join(map(str, x)) + ']', axis=1)
-
-    b = a.loc[:, ["Config", "Metric", "Error"]].sort_values(by="Error", ascending=True)
-
-    b.to_excel(f"{output_path}list.xlsx", index=False)
 
     return search_result.x
 
@@ -447,3 +427,36 @@ def reset_iteration():
         ij = 0
     else:
         ij += 1
+
+def data_analysis(output_fold):
+    # Navigate to the output folder
+    os.chdir(output_fold)
+
+    # Get the list of subdirectories in the output folder
+    folders = [f for f in os.listdir(".") if os.path.isdir(f)]
+
+    with pd.ExcelWriter("AA_RES.xlsx", engine="xlsxwriter") as writer:
+        for folder in folders:
+            # Create the full path to the folder
+            folder_path = f"{output_fold}/{folder}"
+
+            # Navigate to the current folder
+            os.chdir(folder_path)
+
+            # Read the hpo_results.csv file
+            csv_file = "hpo_results.csv"
+            a = pd.read_csv(csv_file)
+
+            # Apply transformations to the dataframe a
+            pd.options.display.float_format = '{:.2e}'.format
+            a["Learning Rate"] = a["Learning Rate"].apply(lambda x: '%.2e' % x)
+            a["Time Spent"] = a["Time Spent"].apply(lambda x: '%.2e' % x)
+            a["Metric"] = a["Metric"].apply(lambda x: '%.2e' % x)
+            a["Config"] = a[["Learning Rate", "Num Dense Layers", "Num Dense Nodes",
+                             "Activation"]].apply(lambda x: '[' + ','.join(map(str, x)) + ']', axis=1)
+            b = a.loc[:, ["Config", "Metric", "Error"]].sort_values(by="Error", ascending=True)
+            b["Iteration"] = b.index
+
+            # Navigate back to the output folder
+            os.chdir(output_fold)
+            b.to_excel(writer, sheet_name=folder, index=False)
