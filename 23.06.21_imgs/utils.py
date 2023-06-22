@@ -29,7 +29,7 @@ dde_seed = None
 initial = None
 msg = None
 ITERATION = 0
-ij = 1
+ij = 0
 
 current_file = os.path.abspath(__file__)
 folder_pa = os.path.dirname(current_file)
@@ -158,7 +158,7 @@ matlab = {'c': np.loadtxt(f"{folder_path}matlab/output_matlab_system_0.txt")[:, 
           's': np.loadtxt(f"{folder_path}matlab/output_matlab_system_3.txt")[:, 2:]}
 
 def pde(x, theta):
-    dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=1)
+    dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=2)
     dtheta_xx = dde.grad.hessian(theta, x, i=0, j=0)
 
     return a1 * dtheta_tau - dtheta_xx + a2 * theta * W_avg
