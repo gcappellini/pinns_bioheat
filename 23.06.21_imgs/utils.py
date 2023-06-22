@@ -12,6 +12,7 @@ from openpyxl import load_workbook
 import time
 import random
 import imgkit
+import torch
 
 if dde.backend.backend_name == "pytorch":
     sin = dde.backend.pytorch.sin
@@ -23,32 +24,40 @@ else:
     sin = tf.sin
 
 
-gp_seed, dde_seed = None, None
+gp_seed = None
+dde_seed = None
 initial = None
+msg = None
 ITERATION = 0
-ij = 0
+ij = 1
 
-folder_path = "/home/giuglielmocappellini/Projects/PINNs/23.06.14_hpo2/"
-# folder_path = ""
+current_file = os.path.abspath(__file__)
+folder_pa = os.path.dirname(current_file)
+folder_path = f"{folder_pa}/"
+output_path = None
 
-def esegui_esperimento():
-    global gp_seed, dde_seed, initial, ij
 
-    if gp_seed is None:
-        gp_seed = random.randint(0, 1000)  # Genera il seed per GP
-    if dde_seed is None:
-        dde_seed = random.randint(0, 1000)  # Genera il seed per DDE
 
-    ini_list = ["Glorot normal", "Glorot uniform", "He normal", "He uniform", "zeros"]
-    initial = ini_list[ij]
-
-    # Crea il nome della cartella basato sui seed
-    output_path = f"{folder_path}output/{gp_seed}_{dde_seed}_{initial}"
+def inizia_esperimento(ii, cc, ss):
+    print(f"Inizio esperimento:{cc, ss, ii}")
+    global output_path
+    #
+    # if gp_seed is None:
+    #     gp_seed = random.randint(0, 1000)  # Genera il seed per GP
+    # if dde_seed is None:
+    #     dde_seed = random.randint(0, 1000)  # Genera il seed per DDE
+    #
+    # ini_list = ["Glorot normal", "Glorot uniform", "He normal", "He uniform", "zeros"]
+    # initial = ini_list[ij]
+    #
+    # # Crea il nome della cartella basato sui seed
+    # output_path = f"{folder_path}output/{gp_seed}_{dde_seed}_{initial}"
+    output_path = f"{folder_path}output/{ii}_{cc}_{ss}/"
 
     # Crea la struttura delle cartelle
-    cartella_figure = os.path.join(output_path, "figures")
-    cartella_history = os.path.join(output_path, "history")
-    cartella_model = os.path.join(output_path, "model")
+    cartella_figure = f"{output_path}figures"
+    cartella_history = f"{output_path}history"
+    cartella_model = f"{output_path}model"
 
     # Crea le cartelle se non esistono già
     os.makedirs(cartella_figure, exist_ok=True)
@@ -59,8 +68,8 @@ def esegui_esperimento():
     # esegui_codice_specifico()
 
     # Restituisci i seed come output
-    return gp_seed, dde_seed, initial, ij
-
+    # return gp_seed, dde_seed, initial, ij
+    return output_path
 
 
 # General parameters
@@ -162,19 +171,28 @@ def func(x):
 def transform(x, y):
     return x[:, 0:1] * y
 
+def transform2(x, y):
+    mask = torch.where(x[:, 2:] == 0, torch.ones_like(y), torch.zeros_like(y))
+    transformed_y = mask * (x[:, 1:2] * (x[:, 0:1] ** 4) / 4 + 15 * (((x[:, 0:1] - 1) ** 2) * x[:, 0:1]) / dT) \
+                    + (1 - mask) * y
+    return x[:, 0:1] * transformed_y
+
 
 def boundary_1(x, on_boundary):
     return on_boundary and np.isclose(x[0], 1)
 
 
-def create_model(config):
-    global gp_seed, dde_seed, initial
+def create_model(ii, config, settings):
+    # global gp_seed, dde_seed, initial
+    dde_seed, initial = ii
     dde.config.set_random_seed(dde_seed)
 
     learning_rate, num_dense_layers, num_dense_nodes, activation = config
+    end_time, weight_ic, end_flux, spec = settings
+    start_flux = -1* spec * end_flux
 
-    geom = dde.geometry.Rectangle([0, -5], [1, 5])
-    timedomain = dde.geometry.TimeDomain(0, 1.3)
+    geom = dde.geometry.Rectangle([0, start_flux], [1, end_flux])
+    timedomain = dde.geometry.TimeDomain(0, end_time)
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
     bc_1 = dde.icbc.NeumannBC(geomtime, lambda x: x[:, 1:2], boundary_1)
@@ -198,50 +216,50 @@ def create_model(config):
     )
 
     net.apply_output_transform(transform)
+    # net.apply_output_transform(transform2)
 
-    loss_weights = [1, 1, 10000]
+    loss_weights = [1, 1, weight_ic]
     model = dde.Model(data, net)
     model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
     return model
 
 
-def train_model(model, config):
-    global gp_seed, dde_seed, initial
-    output_path = f"{folder_path}output/{gp_seed}_{dde_seed}_{initial}/"
+def train_model(model, ii, config, ss):
+    # global gp_seed, dde_seed, initial
+    global output_path
+    dde_seed, initial = ii
     dde.config.set_random_seed(dde_seed)
 
-    print(f"start training {config}")
+    print(f"start training {config}_{ss}")
     losshistory, train_state = model.train(iterations=epochs,
-                                           model_save_path=f"{output_path}model/{config}.ckpt")
-    dde.saveplot(losshistory, train_state, issave=True, isplot=False, loss_fname=f"{config}_loss",
-                 train_fname=f"{config}_train", test_fname=f"{config}_test",
+                                           model_save_path=f"{output_path}model/{config}_{ss}.ckpt")
+    dde.saveplot(losshistory, train_state, issave=True, isplot=False, loss_fname=f"{config}_{ss}_loss",
+                 train_fname=f"{config}_{ss}_train", test_fname=f"{config}_{ss}_test",
                  output_dir=f"{output_path}history")
-    
-    train = np.array(losshistory.loss_train).sum(axis=1).ravel()
-    test = np.array(losshistory.loss_test).sum(axis=1).ravel()
-    metric = np.array(losshistory.metrics_test).sum(axis=1).ravel()
+    e = scarto(model)
 
-    error = test.min()
+    # return np.linalg.norm(e)
+    return model
+
+
+def scarto(model):
+    pinns = {'c': model.predict(XX['c']), 'l': model.predict(XX['l']),
+             'e': model.predict(XX['e']), 's': model.predict(XX['s'])}
+
+    error = [dde.metrics.l2_relative_error(matlab['c'], pinns['c']),
+             dde.metrics.l2_relative_error(matlab['l'], pinns['l']),
+             dde.metrics.l2_relative_error(matlab['e'], pinns['e']),
+             dde.metrics.l2_relative_error(matlab['s'], pinns['s'])]
     return error
-    # pinns = {'c': model.predict(XX['c']), 'l': model.predict(XX['l']),
-    #          'e': model.predict(XX['e']), 's': model.predict(XX['s'])}
 
-    # error = [dde.metrics.l2_relative_error(matlab['c'], pinns['c']),
-    #          dde.metrics.l2_relative_error(matlab['l'], pinns['l']),
-    #          dde.metrics.l2_relative_error(matlab['e'], pinns['e']),
-    #          dde.metrics.l2_relative_error(matlab['s'], pinns['s'])]
-
-    # e = np.linalg.norm(error)
-    # return e
-
-
-def restore_model(model, config):
-    global gp_seed, dde_seed, initial
-    output_path = f"{folder_path}output/{gp_seed}_{dde_seed}_{initial}/"
+def restore_model(model, ii, config, ss):
+    # global gp_seed, dde_seed, initial
+    global output_path
+    dde_seed, initial = ii
     dde.config.set_random_seed(dde_seed)
 
     print(f"restoring {config}")
-    model.restore(f"{output_path}model/{config}.ckpt-{epochs}.pt", verbose=0)
+    model.restore(f"{output_path}model/{config}_{ss}.ckpt-{epochs}.pt", verbose=0)
     return model
     # pinns = {'c': model.predict(XX['c']), 'l': model.predict(XX['l']),
     #          'e': model.predict(XX['e']), 's': model.predict(XX['s'])}
@@ -264,13 +282,14 @@ def configure_subplot(ax, surface):
     ax.view_init(20, -120)
 
 
-def plot_3d(confi):
-    global gp_seed, dde_seed, initial
-    output_path = f"{folder_path}output/{gp_seed}_{dde_seed}_{initial}/"
+def plot_3d(ii, confi, sets):
+    # global gp_seed, dde_seed, initial
+    global output_path
+    dde_seed, initial = ii
     dde.config.set_random_seed(dde_seed)
 
-    a = create_model(confi)
-    p = restore_model(a, confi)
+    a = create_model(ii, confi, sets)
+    p = restore_model(a, ii, confi, sets)
 
     pinns = {'c': p.predict(XX['c']), 'l': p.predict(XX['l']),
              'e': p.predict(XX['e']), 's': p.predict(XX['s'])}
@@ -322,9 +341,8 @@ def plot_3d(confi):
 
 @use_named_args(dimensions=dimensions)
 def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation):
-    global ITERATION, gp_seed, dde_seed, initial
+    global ITERATION, gp_seed, dde_seed, initial, output_path
     config = [learning_rate, num_dense_layers, num_dense_nodes, activation]
-    output_path = f"{folder_path}output/{gp_seed}_{dde_seed}_{initial}/"
     dde.config.set_random_seed(dde_seed)
 
     print(ITERATION, "it number")
@@ -359,7 +377,6 @@ def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation):
         "Time Spent": time_spent
     }
     df = pd.DataFrame(data, index=[ITERATION])
-    df["Metric"] = df.apply(metric, axis=1)
 
     file_path = f"{output_path}hpo_results.csv"
 
@@ -375,8 +392,7 @@ def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation):
 
 
 def hpo(default_parameters):
-    global gp_seed, dde_seed, initial
-    output_path = f"{folder_path}output/{gp_seed}_{dde_seed}_{initial}/"
+    global gp_seed, dde_seed, initial, output_path
     dde.config.set_random_seed(dde_seed)
 
     search_result = gp_minimize(
@@ -405,6 +421,9 @@ def hpo(default_parameters):
 
     plt.show()
 
+    # Load the CSV file into a pandas DataFrame
+    csv_file = f'{output_path}hpo_results.csv'
+
     return search_result.x
 
 
@@ -430,7 +449,6 @@ def reset_iteration():
         ij = 0
     else:
         ij += 1
-
 
 def data_analysis(output_fold):
     # Navigate to the output folder
@@ -464,3 +482,93 @@ def data_analysis(output_fold):
             # Navigate back to the output folder
             os.chdir(output_fold)
             b.to_excel(writer, sheet_name=folder, index=False)
+
+
+def plot_err(ii, cc, ss):
+    global output_path
+    a = create_model(ii, cc, ss)
+    b = restore_model(a, ii, cc, ss)
+
+    pinns = {'c': b.predict(XX['c']), 'l': b.predict(XX['l']),
+             'e': b.predict(XX['e']), 's': b.predict(XX['s'])}
+
+    error = {'x': np.ravel(X), 't': np.ravel(T),
+             'c': np.abs(matlab['c'] - pinns['c']), 'l': np.abs(matlab['l'] - pinns['l']),
+             'e': np.abs(matlab['e'] - pinns['e']), 's': np.abs(matlab['s'] - pinns['s'])}
+
+    error_values = [np.linalg.norm(error['c']), np.linalg.norm(error['l']),
+                    np.linalg.norm(error['e']), np.linalg.norm(error['s'])]
+
+    x_labels = ['constant flux', 'linear flux', 'exponential flux', 'sinusoidal flux']
+
+    # Create the bar graph
+    plt.bar(x_labels, error_values)
+
+    # Customize labels and title
+    plt.xlabel('Error')
+    plt.ylabel('Value')
+    plt.title('Error Values')
+
+    # Add labels to each bar
+    # for i, value in enumerate(error_values):
+    #     plt.text(i, value, str(round(value, 2)), ha='center', va='bottom')
+
+    # Display the bar graph
+    plt.savefig(f"{output_path}figures/error_domain_{cc}_{ss}.png", dpi=300, bbox_inches='tight')
+    plt.show()
+
+    # Reshape the error dictionary to have the same shape as the grid
+    error_grid = {}
+    for key in error.keys():
+        error_grid[key] = np.reshape(error[key], X.shape)
+
+    # Calculate the error evolution in time
+    error_evolution_time = {
+        'Constant Flux': np.linalg.norm(error_grid['c'], axis=1),
+        'Linear Flux': np.linalg.norm(error_grid['l'], axis=1),
+        'Exponential Flux': np.linalg.norm(error_grid['e'], axis=1),
+        'Sinusoidal Flux': np.linalg.norm(error_grid['s'], axis=1)
+    }
+
+    # Calculate the error in space
+    error_in_space = {
+        'Constant Flux': np.linalg.norm(error_grid['c'], axis=0),
+        'Linear Flux': np.linalg.norm(error_grid['l'], axis=0),
+        'Exponential Flux': np.linalg.norm(error_grid['e'], axis=0),
+        'Sinusoidal Flux': np.linalg.norm(error_grid['s'], axis=0)
+    }
+
+    # Plot error evolution in time
+    plt.figure(figsize=(10, 8))
+    for i, (key, value) in enumerate(error_evolution_time.items()):
+        plt.subplot(2, 2, i + 1)
+        plt.plot(t, value)
+        plt.title(key)
+        plt.xlabel('Time')
+        plt.ylabel('Error')
+    plt.tight_layout()
+    plt.savefig(f"{output_path}figures/error_time_{cc}_{ss}.png", dpi=300, bbox_inches='tight')
+    plt.show()
+
+    # Plot error in space
+    plt.figure(figsize=(10, 8))
+    for i, (key, value) in enumerate(error_in_space.items()):
+        plt.subplot(2, 2, i + 1)
+        plt.plot(x, value)
+        plt.title(key)
+        plt.xlabel('Space')
+        plt.ylabel('Error')
+    plt.tight_layout()
+    plt.savefig(f"{output_path}figures/error_space_{cc}_{ss}.png", dpi=300, bbox_inches='tight')
+    plt.show()
+
+
+    # Save the data as an XLSX file
+    data = {'Constant Flux': [np.linalg.norm(error_grid['c']), np.sum(np.linalg.norm(error_grid['c'], axis=0)), np.sum(np.linalg.norm(error_grid['c'], axis=1))],
+            'Linear Flux': [np.linalg.norm(error_grid['l']), np.sum(np.linalg.norm(error_grid['l'], axis=0)), np.sum(np.linalg.norm(error_grid['l'], axis=1))],
+            'Exponential Flux': [np.linalg.norm(error_grid['e']), np.sum(np.linalg.norm(error_grid['e'], axis=0)), np.sum(np.linalg.norm(error_grid['e'], axis=1))],
+            'Sinusoidal Flux': [np.linalg.norm(error_grid['s']), np.sum(np.linalg.norm(error_grid['s'], axis=0)), np.sum(np.linalg.norm(error_grid['s'], axis=1))]}
+    
+    df = pd.DataFrame(data, index=['Domain', 'Space', 'Time'])
+    df.to_excel(f"{output_path}/error.xlsx")
+
