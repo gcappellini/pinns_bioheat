@@ -13,6 +13,7 @@ import time
 import random
 import imgkit
 import torch
+import wandb
 
 if dde.backend.backend_name == "pytorch":
     sin = dde.backend.pytorch.sin
@@ -26,32 +27,43 @@ else:
 
 gp_seed = None
 dde_seed = None
-initial = None
-msg = None
 ITERATION = 0
-ij = 0
 
 current_file = os.path.abspath(__file__)
 folder_pa = os.path.dirname(current_file)
-folder_path = f"{folder_pa}/"
+# folder_path = f"{folder_pa}/"
+folder_path = ""
 output_path = None
 
+epochs = 20000
+
+def inizia_hpo():
+    global output_path, gp_seed, dde_seed
+
+    if gp_seed is None:
+        gp_seed = random.randint(0, 1000)  # Genera il seed per GP
+    if dde_seed is None:
+        dde_seed = random.randint(0, 1000)  # Genera il seed per DDE
+
+    output_path = f"{folder_path}output/hpo/{dde_seed}_{gp_seed}/"
+
+    # Crea la struttura delle cartelle
+    cartella_figure = f"{output_path}figures"
+    cartella_history = f"{output_path}history"
+    cartella_model = f"{output_path}model"
+
+    # Crea le cartelle se non esistono già
+    os.makedirs(cartella_figure, exist_ok=True)
+    os.makedirs(cartella_history, exist_ok=True)
+    os.makedirs(cartella_model, exist_ok=True)
+
+    return output_path, gp_seed, dde_seed
 
 
 def inizia_esperimento(ii, cc, ss):
-    print(f"Inizio esperimento:{cc, ss, ii}")
-    global output_path
-    #
-    # if gp_seed is None:
-    #     gp_seed = random.randint(0, 1000)  # Genera il seed per GP
-    # if dde_seed is None:
-    #     dde_seed = random.randint(0, 1000)  # Genera il seed per DDE
-    #
-    # ini_list = ["Glorot normal", "Glorot uniform", "He normal", "He uniform", "zeros"]
-    # initial = ini_list[ij]
-    #
-    # # Crea il nome della cartella basato sui seed
-    # output_path = f"{folder_path}output/{gp_seed}_{dde_seed}_{initial}"
+    global output_path, dde_seed
+
+    dde_seed = ii
     output_path = f"{folder_path}output/{ii}_{cc}_{ss}/"
 
     # Crea la struttura delle cartelle
@@ -69,7 +81,7 @@ def inizia_esperimento(ii, cc, ss):
 
     # Restituisci i seed come output
     # return gp_seed, dde_seed, initial, ij
-    return output_path
+    return output_path, dde_seed
 
 
 # General parameters
@@ -98,7 +110,6 @@ q0_ad = q0/dT
 # Network parameters
 precision_train = 10
 precision_test = 30
-epochs = 20000
 
 # HPO setting
 n_calls = 100
@@ -107,12 +118,24 @@ dim_num_dense_layers = Integer(low=1, high=4, name="num_dense_layers")
 dim_num_dense_nodes = Integer(low=5, high=500, name="num_dense_nodes")
 dim_activation = Categorical(categories=["elu", "relu", "selu", "silu", "sigmoid", "sin", "swish", "tanh"],
                              name="activation")
+dim_initialization = Categorical(categories=["Glorot normal", "Glorot uniform", "He normal", "He uniform"],
+                             name="initialization")
+# dim_weight_ic = Integer(low=1, high=1000000, name="weight_ic")
+# dim_weight_bcl = Integer(low=1, high=1000000, name="weight_bcl")
+# dim_weight_bcr = Integer(low=1, high=1000000, name="weight_bcr")
+# dim_weight_domain = Integer(low=1, high=1000000, name="weight_domain")
+
 
 dimensions = [
     dim_learning_rate,
     dim_num_dense_layers,
     dim_num_dense_nodes,
-    dim_activation
+    dim_activation,
+    dim_initialization
+    # dim_weight_ic,
+    # dim_weight_bcl,
+    # dim_weight_bcr,
+    # dim_weight_domain
 ]
 
 # Prediction grid and ground truth
@@ -164,45 +187,39 @@ def pde(x, theta):
     return a1 * dtheta_tau - dtheta_xx + a2 * theta * W_avg
 
 
-def func(x):
+def ic_func(x):
     return x[:, 1:2] * (x[:, 0:1] ** 4) / 4 + 15 * (((x[:, 0:1] - 1) ** 2) * x[:, 0:1]) / dT
 
-
-def transform(x, y):
-    return x[:, 0:1] * y
-
-def transform2(x, y):
-    mask = torch.where(x[:, 2:] == 0, torch.ones_like(y), torch.zeros_like(y))
-    transformed_y = mask * (x[:, 1:2] * (x[:, 0:1] ** 4) / 4 + 15 * (((x[:, 0:1] - 1) ** 2) * x[:, 0:1]) / dT) \
-                    + (1 - mask) * y
-    return x[:, 0:1] * transformed_y
 
 
 def boundary_1(x, on_boundary):
     return on_boundary and np.isclose(x[0], 1)
 
 
-def create_model(ii, config, settings):
-    # global gp_seed, dde_seed, initial
-    dde_seed, initial = ii
+def boundary_0(x, on_boundary):
+    return on_boundary and np.isclose(x[0], 0)
+
+
+def create_model(config, setts):
+    global dde_seed
     dde.config.set_random_seed(dde_seed)
 
-    learning_rate, num_dense_layers, num_dense_nodes, activation = config
-    end_time, weight_ic, end_flux, spec = settings
-    start_flux = -1* spec * end_flux
+    learning_rate, num_dense_layers, num_dense_nodes, activation, initialization = config
+    end_flux, end_time, w_domain, w_bcl, w_bcr, w_ic = setts 
 
-    geom = dde.geometry.Rectangle([0, start_flux], [1, end_flux])
+    geom = dde.geometry.Rectangle([0, 0], [1, end_flux])
     timedomain = dde.geometry.TimeDomain(0, end_time)
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
+    bc_0 = dde.icbc.DirichletBC(geomtime, lambda x: 0, boundary_0)
     bc_1 = dde.icbc.NeumannBC(geomtime, lambda x: x[:, 1:2], boundary_1)
 
-    ic = dde.icbc.IC(geomtime, func, lambda _, on_initial: on_initial)
+    ic = dde.icbc.IC(geomtime, ic_func, lambda _, on_initial: on_initial)
 
     data = dde.data.TimePDE(
         geomtime,
         pde,
-        [bc_1, ic],
+        [bc_0, bc_1, ic],
         num_domain=2560,
         num_boundary=80,
         num_initial=160,
@@ -212,54 +229,82 @@ def create_model(ii, config, settings):
     net = dde.maps.FNN(
         [3] + [num_dense_nodes] * num_dense_layers + [1],
         activation,
-        initial,
+        initialization,
     )
 
-    net.apply_output_transform(transform)
-    # net.apply_output_transform(transform2)
 
-    loss_weights = [1, 1, weight_ic]
+    loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
     model = dde.Model(data, net)
     model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
     return model
 
 
-def train_model(model, ii, config, ss):
-    # global gp_seed, dde_seed, initial
-    global output_path
-    dde_seed, initial = ii
+def train_model(model, config, setts):
+    global output_path, dde_seed
     dde.config.set_random_seed(dde_seed)
 
-    print(f"start training {config}_{ss}")
+    print(f"start training {config}_{setts}")
     losshistory, train_state = model.train(iterations=epochs,
-                                           model_save_path=f"{output_path}model/{config}_{ss}.ckpt")
-    dde.saveplot(losshistory, train_state, issave=True, isplot=False, loss_fname=f"{config}_{ss}_loss",
-                 train_fname=f"{config}_{ss}_train", test_fname=f"{config}_{ss}_test",
+                                           model_save_path=f"{output_path}model/{config}_{setts}.ckpt")
+    dde.saveplot(losshistory, train_state, issave=True, isplot=False, loss_fname=f"{config}_{setts}_loss",
+                 train_fname=f"{config}_{setts}_train", test_fname=f"{config}_{setts}_test",
                  output_dir=f"{output_path}history")
-    e = scarto(model)
+    
+    train = np.array(losshistory.loss_train).sum(axis=1).ravel()
+    test = np.array(losshistory.loss_test).sum(axis=1).ravel()
+    metric = np.array(losshistory.metrics_test).sum(axis=1).ravel()
 
-    # return np.linalg.norm(e)
+    # error = test.min()
+    error = scarto(model)
+    # return error
     return model
-
 
 def scarto(model):
     pinns = {'c': model.predict(XX['c']), 'l': model.predict(XX['l']),
              'e': model.predict(XX['e']), 's': model.predict(XX['s'])}
 
-    error = [dde.metrics.l2_relative_error(matlab['c'], pinns['c']),
-             dde.metrics.l2_relative_error(matlab['l'], pinns['l']),
-             dde.metrics.l2_relative_error(matlab['e'], pinns['e']),
-             dde.metrics.l2_relative_error(matlab['s'], pinns['s'])]
-    return error
+    error = {'c': np.abs(matlab['c'] - pinns['c']), 'l': np.abs(matlab['l'] - pinns['l']),
+             'e': np.abs(matlab['e'] - pinns['e']), 's': np.abs(matlab['s'] - pinns['s'])}
 
-def restore_model(model, ii, config, ss):
-    # global gp_seed, dde_seed, initial
-    global output_path
-    dde_seed, initial = ii
+    error_values = [np.linalg.norm(error['c']), np.linalg.norm(error['l']),
+                    np.linalg.norm(error['e']), np.linalg.norm(error['s'])]
+
+    error_domain = [np.linalg.norm(np.abs(matlab['c'] - pinns['c'])),
+                    np.linalg.norm(np.abs(matlab['l'] - pinns['l'])),
+                    np.linalg.norm(np.abs(matlab['e'] - pinns['e'])),
+                    np.linalg.norm(np.abs(matlab['s'] - pinns['s']))]
+
+    # Reshape the error dictionary to have the same shape as the grid
+    error_grid = {}
+    for key in error.keys():
+        error_grid[key] = np.reshape(error[key], X.shape)
+
+    # Calculate the error evolution in time
+    error_time = {
+        'Constant Flux': np.linalg.norm(error_grid['c'], axis=1),
+        'Linear Flux': np.linalg.norm(error_grid['l'], axis=1),
+        'Exponential Flux': np.linalg.norm(error_grid['e'], axis=1),
+        'Sinusoidal Flux': np.linalg.norm(error_grid['s'], axis=1)
+    }
+
+    # Calculate the error in space
+    error_space = {
+        'Constant Flux': np.linalg.norm(error_grid['c'], axis=0),
+        'Linear Flux': np.linalg.norm(error_grid['l'], axis=0),
+        'Exponential Flux': np.linalg.norm(error_grid['e'], axis=0),
+        'Sinusoidal Flux': np.linalg.norm(error_grid['s'], axis=0)
+    }
+
+    # values = list(error_space.values())
+    
+    # return np.linalg.norm(values)
+    return np.linalg.norm(error_domain)
+
+def restore_model(model, config, setts):
+    global output_path, dde_seed
     dde.config.set_random_seed(dde_seed)
 
-    print(f"restoring {config}")
-    model.restore(f"{output_path}model/{config}_{ss}.ckpt-{epochs}.pt", verbose=0)
+    model.restore(f"{output_path}model/{config}_{setts}.ckpt-{epochs}.pt", verbose=0)
     return model
     # pinns = {'c': model.predict(XX['c']), 'l': model.predict(XX['l']),
     #          'e': model.predict(XX['e']), 's': model.predict(XX['s'])}
@@ -272,6 +317,13 @@ def restore_model(model, ii, config, ss):
     # e = np.linalg.norm(error)
     # return e
 
+def restore2_model(model, config, setts):
+    global output_path, dde_seed
+    dde.config.set_random_seed(dde_seed)
+
+    model.restore(f"{output_path}model/final.ckpt-{epochs}.pt", verbose=0)
+    return model
+
 def configure_subplot(ax, surface):
     ax.plot_surface(X, 1800 * T, surface, cmap='inferno', alpha=.8)
     ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -282,14 +334,9 @@ def configure_subplot(ax, surface):
     ax.view_init(20, -120)
 
 
-def plot_3d(ii, confi, sets):
-    # global gp_seed, dde_seed, initial
-    global output_path
-    dde_seed, initial = ii
+def plot_3d(p, confi, setts):
+    global output_path, dde_seed
     dde.config.set_random_seed(dde_seed)
-
-    a = create_model(ii, confi, sets)
-    p = restore_model(a, ii, confi, sets)
 
     pinns = {'c': p.predict(XX['c']), 'l': p.predict(XX['l']),
              'e': p.predict(XX['e']), 's': p.predict(XX['s'])}
@@ -303,13 +350,13 @@ def plot_3d(ii, confi, sets):
 
     # Define surfaces for each subplot
     surfaces = [
-        [rescale(matlab['c']).reshape(X.shape), rescale(pinns['c']).reshape(X.shape),
+        [matlab['c'].reshape(X.shape), pinns['c'].reshape(X.shape),
          np.abs(pinns['c'] - matlab['c']).reshape(X.shape)],
-        [rescale(matlab['l']).reshape(X.shape), rescale(pinns['l']).reshape(X.shape),
+        [matlab['l'].reshape(X.shape), pinns['l'].reshape(X.shape),
          np.abs(pinns['l'] - matlab['l']).reshape(X.shape)],
-        [rescale(matlab['e']).reshape(X.shape), rescale(pinns['e']).reshape(X.shape),
+        [matlab['e'].reshape(X.shape), pinns['e'].reshape(X.shape),
          np.abs(pinns['e'] - matlab['e']).reshape(X.shape)],
-        [rescale(matlab['s']).reshape(X.shape), rescale(pinns['s']).reshape(X.shape),
+        [matlab['s'].reshape(X.shape), pinns['s'].reshape(X.shape),
          np.abs(pinns['s'] - matlab['s']).reshape(X.shape)]
     ]
 
@@ -335,15 +382,87 @@ def plot_3d(ii, confi, sets):
     plt.subplots_adjust(wspace=0.15, hspace=0.25)
 
     # Save and show plot
-    plt.savefig(f"{output_path}figures/plot3d_{confi}.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{output_path}figures/plot3d_{confi}_{setts}.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 
-@use_named_args(dimensions=dimensions)
-def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation):
-    global ITERATION, gp_seed, dde_seed, initial, output_path
-    config = [learning_rate, num_dense_layers, num_dense_nodes, activation]
+def plot2_3d(p, confi, setts):
+    global output_path, dde_seed
     dde.config.set_random_seed(dde_seed)
+
+    pinns = {'c': p.predict(XX['c']), 'l': p.predict(XX['l']),
+             'e': p.predict(XX['e']), 's': p.predict(XX['s'])}
+
+    # Create 3D axes
+    fig = plt.figure(figsize=(9, 12))
+
+    # Define row and column titles
+    row_titles = ['Constant Flux', 'Linear Flux', 'Exponential Flux', 'Sinusoidal Flux']
+    col_titles = ['MATLAB', 'PINNs', 'Error']
+
+    # Define surfaces for each subplot
+    surfaces = [
+        [matlab['c'].reshape(X.shape), pinns['c'].reshape(X.shape),
+         np.abs(pinns['c'] - matlab['c']).reshape(X.shape)],
+        [matlab['l'].reshape(X.shape), pinns['l'].reshape(X.shape),
+         np.abs(pinns['l'] - matlab['l']).reshape(X.shape)],
+        [matlab['e'].reshape(X.shape), pinns['e'].reshape(X.shape),
+         np.abs(pinns['e'] - matlab['e']).reshape(X.shape)],
+        [matlab['s'].reshape(X.shape), pinns['s'].reshape(X.shape),
+         np.abs(pinns['s'] - matlab['s']).reshape(X.shape)]
+    ]
+
+    # Create a grid of subplots
+    grid = plt.GridSpec(4, 3)
+
+    # Iterate over rows and columns to add subplots
+    for row in range(4):
+        for col in range(3):
+            ax = fig.add_subplot(grid[row, col], projection='3d')
+            configure_subplot(ax, surfaces[row][col])
+
+            # Set column titles for the top row
+            if row == 0:
+                ax.set_title(col_titles[col], fontsize=8, y=.96, weight='semibold')
+
+            # Set row titles for the leftmost column
+            if col == 0:
+                ax.text2D(-0.2, 0.5, row_titles[row], fontsize=9, rotation='vertical', ha='center',
+                          va='center', weight='semibold', transform=ax.transAxes)
+
+    # Adjust spacing between subplots
+    plt.subplots_adjust(wspace=0.15, hspace=0.25)
+
+    # Save and show plot
+    plt.savefig(f"{output_path}figures/plot3d_final.png", dpi=300, bbox_inches='tight')
+    plt.show()
+
+@use_named_args(dimensions=dimensions)
+def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation, initialization):
+    global ITERATION, gp_seed, dde_seed, output_path
+    config = [learning_rate, num_dense_layers, num_dense_nodes, activation, initialization]
+    dde.config.set_random_seed(dde_seed)
+
+    # start a new wandb run to track this script
+    wandb.init(
+        # set the wandb project where this run will be logged
+        project="hpo-no-source",
+
+        # track hyperparameters and run metadata
+        config={
+            "learning rate": learning_rate,
+            "num_dense_layers": num_dense_layers,
+            "num_dense_nodes": num_dense_nodes,
+            "activation": activation,
+            "initialization": initialization
+            # "weight_ic": weight_ic,
+            # "weight_bcl": weight_bcl,
+            # "weight_bcr": weight_bcr,
+            # "weight_domain": weight_domain        
+        }
+    )
+
+
 
     print(ITERATION, "it number")
     # Print the hyper-parameters.
@@ -351,6 +470,11 @@ def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation):
     print("num_dense_layers:", num_dense_layers)
     print("num_dense_nodes:", num_dense_nodes)
     print("activation:", activation)
+    print("initialization:", initialization)
+    # print("weight_ic:", weight_ic)
+    # print("weight_bcl:", weight_bcl)
+    # print("weight_bcr:", weight_bcr)
+    # print("weight_domain:", weight_domain)
     print()
 
     start_time = time.time()
@@ -373,6 +497,11 @@ def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation):
         "Num Dense Layers": num_dense_layers,
         "Num Dense Nodes": num_dense_nodes,
         "Activation": activation,
+        "Initialization": initialization,
+        # "Weight_ic": weight_ic,
+        # "Weight_bcl": weight_bcl,
+        # "Weight_bcr": weight_bcr,
+        # "Weight_domain": weight_domain,
         "Error": error,
         "Time Spent": time_spent
     }
@@ -387,18 +516,21 @@ def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation):
         # Append the DataFrame to the CSV file
         df.to_csv(file_path, mode='a', header=False, index=False)
 
+    wandb.log({"err": error})
+    wandb.finish()
+
     ITERATION += 1
     return error
 
 
 def hpo(default_parameters):
-    global gp_seed, dde_seed, initial, output_path
+    global gp_seed, dde_seed, output_path
     dde.config.set_random_seed(dde_seed)
 
     search_result = gp_minimize(
         func=fitness,
         dimensions=dimensions,
-        acq_func="EI",  # Expected Improvement.
+        acq_func="PI",  # Probability Improvement.
         n_calls=n_calls,
         x0=default_parameters,
         random_state=gp_seed,
@@ -439,16 +571,11 @@ def metric(row):
     return result
 
 def reset_iteration():
-    global ITERATION, gp_seed, dde_seed, initial, ij
+    global ITERATION, gp_seed, dde_seed
     ITERATION = 0
     gp_seed = None
     dde_seed = None
-    initial = None
 
-    if ij == 4:
-        ij = 0
-    else:
-        ij += 1
 
 def data_analysis(output_fold):
     # Navigate to the output folder
@@ -473,6 +600,7 @@ def data_analysis(output_fold):
             pd.options.display.float_format = '{:.2e}'.format
             a["Learning Rate"] = a["Learning Rate"].apply(lambda x: '%.2e' % x)
             a["Time Spent"] = a["Time Spent"].apply(lambda x: '%.2e' % x)
+            a['Metric']=a.apply(metric, axis=1)
             a["Metric"] = a["Metric"].apply(lambda x: '%.2e' % x)
             a["Config"] = a[["Learning Rate", "Num Dense Layers", "Num Dense Nodes",
                              "Activation"]].apply(lambda x: '[' + ','.join(map(str, x)) + ']', axis=1)
@@ -484,11 +612,8 @@ def data_analysis(output_fold):
             b.to_excel(writer, sheet_name=folder, index=False)
 
 
-def plot_err(ii, cc, ss):
-    global output_path
-    a = create_model(ii, cc, ss)
-    b = restore_model(a, ii, cc, ss)
-
+def plot_err(b):
+    global output_path, msg
     pinns = {'c': b.predict(XX['c']), 'l': b.predict(XX['l']),
              'e': b.predict(XX['e']), 's': b.predict(XX['s'])}
 
@@ -514,7 +639,7 @@ def plot_err(ii, cc, ss):
     #     plt.text(i, value, str(round(value, 2)), ha='center', va='bottom')
 
     # Display the bar graph
-    plt.savefig(f"{output_path}figures/error_domain_{cc}_{ss}.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{output_path}figures/error_domain_{msg}.png", dpi=300, bbox_inches='tight')
     plt.show()
 
     # Reshape the error dictionary to have the same shape as the grid
@@ -547,7 +672,7 @@ def plot_err(ii, cc, ss):
         plt.xlabel('Time')
         plt.ylabel('Error')
     plt.tight_layout()
-    plt.savefig(f"{output_path}figures/error_time_{cc}_{ss}.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{output_path}figures/error_time_{msg}.png", dpi=300, bbox_inches='tight')
     plt.show()
 
     # Plot error in space
@@ -559,7 +684,7 @@ def plot_err(ii, cc, ss):
         plt.xlabel('Space')
         plt.ylabel('Error')
     plt.tight_layout()
-    plt.savefig(f"{output_path}figures/error_space_{cc}_{ss}.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{output_path}figures/error_space_{msg}.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -571,4 +696,7 @@ def plot_err(ii, cc, ss):
     
     df = pd.DataFrame(data, index=['Domain', 'Space', 'Time'])
     df.to_excel(f"{output_path}/error.xlsx")
+
+
+
 
