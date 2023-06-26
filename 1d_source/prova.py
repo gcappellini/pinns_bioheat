@@ -33,21 +33,29 @@ q0 = 16
 dT = TM - Ta
 q0_ad = q0/dT
 
+# Antenna parameters
+beta = 1
+p = 5
+c = 2
+z0 = 0.5
+
 # Considero il caso flusso costante
 def gen_testdata():
     data = np.loadtxt(f"{folder_path}matlab/output_matlab_system_0.txt")
     x, t, exact = data[:, 0:1].T, data[:, 1:2].T, data[:, 2:].T
-    # xx, tt = np.meshgrid(x, t)
     X = np.vstack((x, np.full_like(x, q0_ad), t)).T
     y = exact.flatten()[:, None]
     return X, y
+
+def sar(s):
+    return beta*torch.exp(-c*(s-z0))*p
 
 def pde(x, theta):
 
     dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=2)
     dtheta_xx = dde.grad.hessian(theta, x, i=0, j=0)
 
-    return a1 * dtheta_tau - dtheta_xx + a2 * theta * W_avg
+    return a1 * dtheta_tau - dtheta_xx + a2 * theta * W_avg - sar(x[:, 0:1])
 
 
 def ic_func(x):
@@ -113,5 +121,7 @@ X_true, y_true = gen_testdata()
 y_pred = model.predict(X_true)
 print("L2 relative error:", dde.metrics.l2_relative_error(y_true, y_pred))
 np.savetxt("test.dat", np.hstack((X, y_true, y_pred)))
+
+
 
 
