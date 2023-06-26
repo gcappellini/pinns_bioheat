@@ -3,9 +3,12 @@ import numpy as np
 import torch
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-dde.config.set_random_seed(dde_seed)
-learning_rate, num_dense_layers, num_dense_nodes, activation, initialization = config
-end_flux, end_time, w_domain, w_bcl, w_bcr, w_ic = setts
+dde.config.set_random_seed(1)
+learning_rate, num_dense_layers, num_dense_nodes, activation, initialization = [0.001, 1, 30, "elu", "Glorot normal"]
+end_flux, end_time, w_domain, w_bcl, w_bcr, w_ic = [1, 1, 1, 1, 1, 1]
+folder_path = ""
+epochs = 20000
+eee = 0.005
 
 # General parameters
 L0 = 0.05
@@ -30,11 +33,12 @@ q0 = 16
 dT = TM - Ta
 q0_ad = q0/dT
 
+# Considero il caso flusso costante
 def gen_testdata():
-    data = np.load("../dataset/Burgers.npz")
-    t, x, exact = data["t"], data["x"], data["usol"].T
-    xx, tt = np.meshgrid(x, t)
-    X = np.vstack((np.ravel(xx), np.ravel(tt))).T
+    data = np.loadtxt(f"{folder_path}matlab/output_matlab_system_0.txt")
+    x, t, exact = data[:, 0:1].T, data[:, 1:2].T, data[:, 2:].T
+    # xx, tt = np.meshgrid(x, t)
+    X = np.vstack((x, np.full_like(x, q0_ad), t)).T
     y = exact.flatten()[:, None]
     return X, y
 
@@ -81,13 +85,13 @@ model = dde.Model(data, net)
 loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
 
 model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
-model.train(iterations=10000)
-model.compile("L-BFGS")
-model.train()
+model.train(iterations=epochs)
+# model.compile("L-BFGS")
+# model.train()
 
 X = geomtime.random_points(100000)
 err = 1
-while err > 0.005:
+while err > eee:
     f = model.predict(X, operator=pde)
     err_eq = np.absolute(f)
     err = np.mean(err_eq)
@@ -98,13 +102,15 @@ while err > 0.005:
     data.add_anchors(X[x_id])
     early_stopping = dde.callbacks.EarlyStopping(min_delta=1e-4, patience=2000)
     model.compile("adam", lr=1e-3)
-    model.train(epochs=10000, disregard_previous_best=True, callbacks=[early_stopping])
-    model.compile("L-BFGS")
-    losshistory, train_state = model.train()
+    # model.train(iterations=epochs, disregard_previous_best=True, callbacks=[early_stopping])
+    # model.compile("L-BFGS")
+    # losshistory, train_state = model.train()
+
+    losshistory, train_state = model.train(iterations=epochs, disregard_previous_best=True, callbacks=[early_stopping])
 dde.saveplot(losshistory, train_state, issave=True, isplot=True)
 
-X, y_true = gen_testdata()
-y_pred = model.predict(X)
+X_true, y_true = gen_testdata()
+y_pred = model.predict(X_true)
 print("L2 relative error:", dde.metrics.l2_relative_error(y_true, y_pred))
 np.savetxt("test.dat", np.hstack((X, y_true, y_pred)))
 
