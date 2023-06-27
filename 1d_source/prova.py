@@ -126,20 +126,25 @@ y_pred = model.predict(x_true)
 print("L2 relative error:", dde.metrics.l2_relative_error(y_true, y_pred))
 np.savetxt("test.dat", np.hstack((x_true, y_true, y_pred)))
 
-ll = np.sqrt(len(y_true))
+ll = int(np.sqrt(len(y_true)))
 
 x_grid = np.reshape(x_true[:, 0:1], (ll, ll))
 t_grid = np.reshape(x_true[:, 2:], (ll, ll))
 y_true_grid = np.reshape(y_true, (ll, ll))
 y_pred_grid = np.reshape(y_pred, (ll, ll))
-x_true_grid = np.reshape(x_true, (ll, ll))
 
 fig = plt.figure()
-ax1 = fig.add_subplot(121, projection='3d')
-ax2 = fig.add_subplot(122, projection='3d')
+ax1 = fig.add_subplot(131, projection='3d')
+ax2 = fig.add_subplot(132, projection='3d')
+ax3 = fig.add_subplot(133, projection='3d')
 
-ax1.plot_surface(x_grid, t_grid, y_pred_grid, cmap='viridis', alpha=.8)
-ax2.plot_surface(x_grid, t_grid, np.abs(y_pred_grid-y_true_grid), cmap='viridis', alpha=.8)
+ax1.view_init(20, -120)
+ax2.view_init(20, -120)
+ax3.view_init(20, -120)
+
+ax1.plot_surface(x_grid, t_grid, y_pred_grid, cmap='inferno', alpha=.8)
+ax2.plot_surface(x_grid, t_grid, y_true_grid, cmap='inferno', alpha=.8)
+ax3.plot_surface(x_grid, t_grid, np.abs(y_pred_grid-y_true_grid), cmap='inferno', alpha=.8)
 
 plt.savefig("figures/source3d.png", dpi=300, bbox_inches='tight')
 plt.show()
