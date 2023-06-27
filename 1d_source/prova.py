@@ -44,7 +44,7 @@ X0 = 0.08
 
 # Considero il caso flusso costante
 def gen_testdata():
-    data = np.loadtxt(f"{folder_path}matlab/output_matlab_system_0.txt")
+    data = np.loadtxt(f"{folder_path}matlab/output_matlab_system.txt")
     x, t, exact = data[:, 0:1].T, data[:, 1:2].T, data[:, 2:].T
     X = np.vstack((x, -0.8*t, t)).T
     y = exact.flatten()[:, None]
