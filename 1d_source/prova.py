@@ -1,6 +1,7 @@
 import deepxde as dde
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dde.config.set_random_seed(1)
@@ -120,11 +121,28 @@ model.train(iterations=epochs)
 #     losshistory, train_state = model.train(iterations=epochs, disregard_previous_best=True, callbacks=[early_stopping])
 # dde.saveplot(losshistory, train_state, issave=True, isplot=True)
 
-X_true, y_true = gen_testdata()
-y_pred = model.predict(X_true)
+x_true, y_true = gen_testdata()
+y_pred = model.predict(x_true)
 print("L2 relative error:", dde.metrics.l2_relative_error(y_true, y_pred))
-np.savetxt("test.dat", np.hstack((X_true, y_true, y_pred)))
+np.savetxt("test.dat", np.hstack((x_true, y_true, y_pred)))
 
+ll = np.sqrt(len(y_true))
+
+x_grid = np.reshape(x_true[:, 0:1], (ll, ll))
+t_grid = np.reshape(x_true[:, 2:], (ll, ll))
+y_true_grid = np.reshape(y_true, (ll, ll))
+y_pred_grid = np.reshape(y_pred, (ll, ll))
+x_true_grid = np.reshape(x_true, (ll, ll))
+
+fig = plt.figure()
+ax1 = fig.add_subplot(121, projection='3d')
+ax2 = fig.add_subplot(122, projection='3d')
+
+ax1.plot_surface(x_grid, t_grid, y_pred_grid, cmap='viridis', alpha=.8)
+ax2.plot_surface(x_grid, t_grid, np.abs(y_pred_grid-y_true_grid), cmap='viridis', alpha=.8)
+
+plt.savefig("figures/source3d.png", dpi=300, bbox_inches='tight')
+plt.show()
 
 
 
