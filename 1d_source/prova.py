@@ -5,7 +5,7 @@ import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dde.config.set_random_seed(1)
 learning_rate, num_dense_layers, num_dense_nodes, activation, initialization = [0.001, 1, 30, "elu", "Glorot normal"]
-end_flux, end_time, w_domain, w_bcl, w_bcr, w_ic = [1, 1, 1, 1, 1, 1]
+start_flux, end_time, w_domain, w_bcl, w_bcr, w_ic = [-1, 1, 1, 1, 1, 1]
 folder_path = ""
 epochs = 20000
 eee = 0.005
@@ -20,46 +20,49 @@ rho = 1050
 c = 3639
 k_eff = 5
 alfa = rho * c / k_eff
+# k_eff = k*(1+alfa*omegab)
 
 W_avg = 2.3
 W_min = 0.45
 W_max = 4
 cb = 3825
 
+dT = TM - Ta
+
 a1 = (alfa * (L0 ** 2)) / tauf
 a2 = (L0 ** 2) * cb / k_eff
+a3 = (L0 ** 2) / (k_eff * dT)
 
-q0 = 16
-dT = TM - Ta
+q0 = 100
 q0_ad = q0/dT
 
 # Antenna parameters
 beta = 1
-p = 5
-c = 2
-z0 = 0.5
+p = 200
+cc = 160
+X0 = 0.08
 
 # Considero il caso flusso costante
 def gen_testdata():
     data = np.loadtxt(f"{folder_path}matlab/output_matlab_system_0.txt")
     x, t, exact = data[:, 0:1].T, data[:, 1:2].T, data[:, 2:].T
-    X = np.vstack((x, np.full_like(x, q0_ad), t)).T
+    X = np.vstack((x, -0.8*t, t)).T
     y = exact.flatten()[:, None]
     return X, y
 
 def sar(s):
-    return beta*torch.exp(-c*(s-z0))*p
+    return beta*torch.exp(-cc*L0*(X0-s))*p
 
 def pde(x, theta):
 
     dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=2)
     dtheta_xx = dde.grad.hessian(theta, x, i=0, j=0)
 
-    return a1 * dtheta_tau - dtheta_xx + a2 * theta * W_avg - sar(x[:, 0:1])
+    return a1 * dtheta_tau - dtheta_xx + a2 * W_avg * theta - a3 * (q0 + sar(x[:, 0:1]))
 
 
 def ic_func(x):
-    return x[:, 1:2] * (x[:, 0:1] ** 4) / 4 + 15 * (((x[:, 0:1] - 1) ** 2) * x[:, 0:1]) / dT
+    return 0
 
 
 def boundary_1(x, on_boundary):
@@ -70,7 +73,7 @@ def boundary_0(x, on_boundary):
     return on_boundary and np.isclose(x[0], 0)
 
 
-geom = dde.geometry.Rectangle([0, 0], [1, end_flux])
+geom = dde.geometry.Rectangle([0, start_flux], [1, 0])
 timedomain = dde.geometry.TimeDomain(0, end_time)
 geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
@@ -94,33 +97,33 @@ loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
 
 model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
 model.train(iterations=epochs)
-# model.compile("L-BFGS")
-# model.train()
-
-X = geomtime.random_points(100000)
-err = 1
-while err > eee:
-    f = model.predict(X, operator=pde)
-    err_eq = np.absolute(f)
-    err = np.mean(err_eq)
-    print("Mean residual: %.3e" % (err))
-
-    x_id = np.argmax(err_eq)
-    print("Adding new point:", X[x_id], "\n")
-    data.add_anchors(X[x_id])
-    early_stopping = dde.callbacks.EarlyStopping(min_delta=1e-4, patience=2000)
-    model.compile("adam", lr=1e-3)
-    # model.train(iterations=epochs, disregard_previous_best=True, callbacks=[early_stopping])
-    # model.compile("L-BFGS")
-    # losshistory, train_state = model.train()
-
-    losshistory, train_state = model.train(iterations=epochs, disregard_previous_best=True, callbacks=[early_stopping])
-dde.saveplot(losshistory, train_state, issave=True, isplot=True)
+# # model.compile("L-BFGS")
+# # model.train()
+#
+# X = geomtime.random_points(100000)
+# err = 1
+# while err > eee:
+#     f = model.predict(X, operator=pde)
+#     err_eq = np.absolute(f)
+#     err = np.mean(err_eq)
+#     print("Mean residual: %.3e" % (err))
+#
+#     x_id = np.argmax(err_eq)
+#     print("Adding new point:", X[x_id], "\n")
+#     data.add_anchors(X[x_id])
+#     early_stopping = dde.callbacks.EarlyStopping(min_delta=1e-4, patience=2000)
+#     model.compile("adam", lr=1e-3)
+#     model.train(iterations=epochs, disregard_previous_best=True, callbacks=[early_stopping])
+#     # model.compile("L-BFGS")
+#     # losshistory, train_state = model.train()
+#
+#     losshistory, train_state = model.train(iterations=epochs, disregard_previous_best=True, callbacks=[early_stopping])
+# dde.saveplot(losshistory, train_state, issave=True, isplot=True)
 
 X_true, y_true = gen_testdata()
 y_pred = model.predict(X_true)
 print("L2 relative error:", dde.metrics.l2_relative_error(y_true, y_pred))
-np.savetxt("test.dat", np.hstack((X, y_true, y_pred)))
+np.savetxt("test.dat", np.hstack((X_true, y_true, y_pred)))
 
 
 
