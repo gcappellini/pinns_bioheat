@@ -40,19 +40,19 @@ ylabel('Time t');
 
 function [c,f,s] = OneDimBHpde(x,t,u,dudx)
 %La prima equazione è quella del sistema, a seguire gli osservatori
-a1 = 1.061375;
+a1 = 0.6528;
 a2 = 1.9125;
 a3 = 6.25e-05;
-q0 = 100;
+qmet = 4200;
 beta = 1;
-cc = 160;
+cc = 16;
 L0 = 0.05;
 X0 = 0.08;
-p = 200;
-W_avg = 2.3;
+p = 150/(1.75e-3);
+W_avg = 0.54;
 c = a1;
 f = 1.* dudx;
-s = -u(1)*a2*W_avg + a3*(q0+beta*exp(-cc*L0*(X0-x))*p);
+s = -u(1)*a2*W_avg + a3*(qmet+beta*exp(-cc*L0*(X0-x))*p);
 
 % --------------------------------------------------------------------------
 
@@ -69,5 +69,7 @@ u0 = 0; %(q0_ad/4)*x^4 + b*x*(x-1)^2;
 function [pl,ql,pr,qr] = OneDimBHbc(xl,ul,xr,ur,t)
 pl = ul(1);
 ql = 0;
-pr = 0.8*t; %constant flux
-qr = 1;
+%pr = 0.8*t; %constant flux
+%qr = 1;
+pr = ur(1); %constant flux
+qr = 0;

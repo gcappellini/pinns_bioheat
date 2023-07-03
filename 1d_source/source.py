@@ -2,34 +2,48 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-# beta = 1
-# p = 5
-# c = 2
-# z0 = 0.5
-#
-# def sar(s):
-#     return beta*np.exp(-c*(z0-s))*p
-#
-#
-x = np.linspace(0,1)
+x = torch.linspace(0, 1, steps=100)
 
-
-
-a1 = 1.061375
-a2 = 1.9125
-a3 = 6.25e-05
-Q = 100
-beta = 1
-c = 16
+# General parameters
 L0 = 0.05
+TM = 45
+Ta = 37
+tauf = 1800
+qmet = 4200
+
+# Fat tissue parameters
+rho = 940
+c = 2500
+K = 0.2
+k_eff = 5
+alfa = rho * c / k_eff
+# k_eff = k*(1+alfa*omegab)
+
+W_avg = 0.54
+W_min = 0.36
+W_max = 0.72
+cb = 3825
+
+dT = TM - Ta
+
+a1 = (alfa * (L0 ** 2)) / tauf
+a2 = (L0 ** 2) * cb / k_eff
+a3 = (L0 ** 2) / (k_eff * dT)
+
+# Antenna parameters
+beta = 1
+p = 150/(1.75e-3)
+cc = 16
 X0 = 0.08
-p = 2000
-W_avg = 2.3
 
 
 
-def s(s):
-    return a3*(Q+beta*np.exp(-c*L0*(X0-s))*p)
+def source(s):
+    return a3*(qmet + beta*torch.exp(-cc*L0*(X0-s))*p)
 
-plt.plot(x, s(x))
+def perfusion(s):
+    return torch.full_like(s, -a2*W_avg)
+
+plotty = source(x) + perfusion(x)
+plt.plot(x, plotty)
 plt.show()
