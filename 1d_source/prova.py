@@ -2,12 +2,16 @@ import deepxde as dde
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import os
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dde.config.set_random_seed(1)
-learning_rate, num_dense_layers, num_dense_nodes, activation, initialization = [0.001, 1, 30, "elu", "Glorot normal"]
-start_flux, end_time, w_domain, w_bcl, w_bcr, w_ic = [-1, 1, 1, 1, 1, 1]
-folder_path = ""
+learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, start_flux, end_time, w_domain, w_bcl, \
+w_bcr, w_ic = [0.001, 1, 30, "elu", "Glorot normal", -1, 1, 1, 1, 1, 1]
+
+current_file = os.path.abspath(__file__)
+folder_pa = os.path.dirname(current_file)
+folder_path = f"{folder_pa}/"
 epochs = 20000
 eee = 0.005
 
@@ -39,9 +43,9 @@ a3 = (L0 ** 2) / (k_eff * dT)
 
 # Antenna parameters
 beta = 1
-p = 150/(1.75e-3)
 cc = 16
-X0 = 0.08
+X0 = 0.09
+p = 150/(5.75e-3)
 
 # Considero il caso flusso costante
 def gen_testdata():
@@ -93,7 +97,7 @@ model = dde.Model(data, net)
 loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
 
 model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
-model.train(iterations=epochs)
+model.train(iterations=epochs, model_save_path=f"{folder_path}model/modello.ckpt")
 # # model.compile("L-BFGS")
 # # model.train()
 #
@@ -146,7 +150,7 @@ ax1.plot_surface(x_grid, t_grid, y_pred_grid, cmap='inferno', alpha=.8)
 ax2.plot_surface(x_grid, t_grid, y_true_grid, cmap='inferno', alpha=.8)
 ax3.plot_surface(x_grid, t_grid, np.abs(y_pred_grid-y_true_grid), cmap='inferno', alpha=.8)
 
-plt.savefig("figures/source3d.png", dpi=300, bbox_inches='tight')
+plt.savefig(f"{folder_path}figures/source3d.png", dpi=300, bbox_inches='tight')
 plt.show()
 
 
