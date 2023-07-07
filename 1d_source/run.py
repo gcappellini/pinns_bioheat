@@ -1,41 +1,82 @@
 import utils
-import numpy as np
-import deepxde as dde
-import matplotlib.pyplot as plt
-import os
-import torch
-import deepxde as dde
+import wandb
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-dde.config.set_random_seed(1)
+"1) HPO"
+for _ in range(5):
+    confi = [0.014, 1, 75, "tanh", "Glorot normal", 1, 1, 1, 1, -1, 1]
+    utils.inizia_hpo()
+    output = utils.hpo(confi)
+    # a = create_model(confi)
+    # p = restore_model(a, confi)
+    # utils.plot_3d(p, output)
+    print("----------------------------------")
+    utils.reset_iteration()
 
-current_file = os.path.abspath(__file__)
-folder_pa = os.path.dirname(current_file)
-folder_path = f"{folder_pa}/"
+# utils.data_analysis("/home/giuglielmocappellini/Projects/PINNs/23.06.23_1D_system_no_source/output")
 
-cc = [0.001, 1, 80, "elu", "Glorot normal", -1, 1, 1, 1, 1, 1, 1]
-a = utils.create_model(cc)
-b = utils.restore_model(a)
-# b = utils.train_model(a)
+"2) Refinement: ricorda di modificare l'errore nella funzione test"
+# confi = [0.001255, 4, 45, "tanh", "He uniform"]
+# ini = 706
 
-x = np.linspace(0,1, num=101)
-t = np.linspace(0,1, num=101)
+# endy = [1.5, 2, 5, 10, 20]
+# weighty = [1, 10, 100, 1000, 10000, 100000, 1000000]
 
-xx, tt = np.meshgrid(x, t)
+# for ef in endy:
+#     for et in endy:
+        
+#         setts = [ef, et, 10, 1000, 100000, 1]
+#             # start a new wandb run to track this script
+#         wandb.init(
+#             # set the wandb project where this run will be logged
+#             project="refinement-no-source",
 
-fl = -0.8*np.ravel(tt)
+#             # track hyperparameters and run metadata
+#             config={
+#                 "end_flux": ef,
+#                 "end_time": et,
+#                 "w_domain": 10, 
+#                 "w_bcl": 1000,
+#                 "w_bcr": 100000,
+#                 "w_ic": 1,         
+#             }
+#         )      
 
-grid = np.vstack((np.ravel(xx), fl, np.ravel(tt))).T
-e = b.predict(grid)
-e_grid = np.reshape(e, xx.shape)
+#         print(f"Inizio refinement {setts}")
 
-fig = plt.figure()
-ax1 = fig.add_subplot(111, projection='3d')
+#         utils.inizia_refinement(ini, confi, setts)
+#         a = utils.create_model(confi, setts)
+#         error = utils.train_model(a, confi, setts)
 
-ax1.view_init(20, -120)
+#         wandb.log({"err": error})
+#         wandb.finish()
 
-ax1.plot_surface(xx, tt, e_grid, cmap='inferno', alpha=.8)
+#         setts = [ef, et, 10, 10000, 100, 10000]
+#             # start a new wandb run to track this script
+#         wandb.init(
+#             # set the wandb project where this run will be logged
+#             project="refinement-no-source",
 
-plt.tight_layout()
-plt.savefig(f"{folder_path}figures/source2.png", dpi=300, bbox_inches='tight')
-plt.show()
+#             # track hyperparameters and run metadata
+#             config={
+#                 "end_flux": ef,
+#                 "end_time": et,
+#                 "w_domain": 10, 
+#                 "w_bcl": 10000,
+#                 "w_bcr": 100,
+#                 "w_ic": 10000,         
+#             }
+#         )      
+
+#         print(f"Inizio refinement {setts}")
+
+#         utils.inizia_refinement(ini, confi, setts)
+#         a = utils.create_model(confi, setts)
+#         error = utils.train_model(a, confi, setts)
+
+#         wandb.log({"err": error})
+#         wandb.finish()
+
+
+"3) Plot"
+# utils.plot_3d(initial, confi, setts)
+# utils.plot_err(initial, confi, setts)
