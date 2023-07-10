@@ -1,0 +1,57 @@
+wandb_version: 1
+
+learning rate:
+  desc: null
+  value: 0.00010981674250230405
+num_dense_layers:
+  desc: null
+  value: 3
+num_dense_nodes:
+  desc: null
+  value: 191
+activation:
+  desc: null
+  value: silu
+initialization:
+  desc: null
+  value: Glorot uniform
+weight_ic:
+  desc: null
+  value: 33
+weight_bcl:
+  desc: null
+  value: 10
+weight_bcr:
+  desc: null
+  value: 58
+weight_domain:
+  desc: null
+  value: 87
+_wandb:
+  desc: null
+  value:
+    python_version: 3.9.16
+    cli_version: 0.15.4
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1688944049.772066
+    t:
+      1:
+      - 1
+      - 5
+      - 53
+      - 55
+      2:
+      - 1
+      - 5
+      - 53
+      - 55
+      3:
+      - 2
+      - 16
+      - 23
+      4: 3.9.16
+      5: 0.15.4
+      8:
+      - 5

@@ -45,7 +45,7 @@ def inizia_hpo():
     if dde_seed is None:
         dde_seed = random.randint(0, 1000)  # Genera il seed per DDE
 
-    output_path = f"{folder_path}output/hpo/{dde_seed}_{gp_seed}/"
+    output_path = f"{folder_path}hpo/{dde_seed}_{gp_seed}/"
 
     # Crea la struttura delle cartelle
     cartella_figure = f"{output_path}figures"

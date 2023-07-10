@@ -1,0 +1,26 @@
+0 it number
+learning rate: 1.4e-02
+num_dense_layers: 1
+num_dense_nodes: 75
+activation: tanh
+initialization: Glorot normal
+weight_ic: 1
+weight_bcl: 1
+weight_bcr: 1
+weight_domain: 1
+Traceback (most recent call last):
+  File "/home/giuglielmocappellini/Projects/PINNs/23.07.09_source_m_obs/run.py", line 25, in <module>
+    output = utils.hpo(confi)
+  File "/home/giuglielmocappellini/Projects/PINNs/23.07.09_source_m_obs/utils.py", line 518, in hpo
+    search_result = gp_minimize(
+  File "/home/giuglielmocappellini/anaconda3/envs/pinns_env/lib/python3.9/site-packages/skopt/optimizer/gp.py", line 259, in gp_minimize
+    return base_minimize(
+  File "/home/giuglielmocappellini/anaconda3/envs/pinns_env/lib/python3.9/site-packages/skopt/optimizer/base.py", line 282, in base_minimize
+    y0 = list(map(func, x0))
+  File "/home/giuglielmocappellini/anaconda3/envs/pinns_env/lib/python3.9/site-packages/skopt/utils.py", line 789, in wrapper
+    objective_value = func(**arg_dict)
+  File "/home/giuglielmocappellini/Projects/PINNs/23.07.09_source_m_obs/utils.py", line 471, in fitness
+    mm = create_system(config)
+  File "/home/giuglielmocappellini/Projects/PINNs/23.07.09_source_m_obs/utils.py", line 170, in create_system
+    learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcl, w_bcr, w_ic, end_time = config
+ValueError: not enough values to unpack (expected 10, got 9)
