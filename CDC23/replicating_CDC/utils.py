@@ -27,7 +27,7 @@ else:
 
 
 gp_seed = None
-dde_seed = 129
+dde_seed = 101
 ITERATION = 0
 
 current_file = os.path.abspath(__file__)
@@ -52,6 +52,7 @@ L0 = 0.05
 TM = 45
 Ta = 37
 tauf = 1800
+
 qmet = 4200
 
 # Tissue parameters
@@ -61,12 +62,14 @@ cb = 3825
 
 dT = TM - Ta
 alfa = rho * c / k_eff
-# K = 0.2
-# k_eff = k*(1+alfa*omegab)
 
 a1 = (alfa * (L0 ** 2)) / tauf
 a2 = (L0 ** 2) * cb / k_eff
 a3 = (L0 ** 2) / (k_eff * dT)
+
+q0 = 16
+dT = TM - Ta
+q0_ad = q0/dT
 
 # Antenna parameters
 beta = 1
@@ -154,10 +157,17 @@ def pde(x, theta):
     return a1 * dtheta_tau - dtheta_xx + a2 * W_avg * theta - a3 * source(x[:, 0:1])
 
 
+def pde_s(x, theta):
+    dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=1)
+    dtheta_xx = dde.grad.hessian(theta, x, i=0, j=0)
+
+    return a1 * dtheta_tau - dtheta_xx + a2 * theta * W_avg
+
+
 def pde_m(x, theta, W):
     dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=2)
     dtheta_xx = dde.grad.hessian(theta, x, i=0, j=0)
-    return a1 * dtheta_tau - dtheta_xx + a2 * W * theta - a3 * source(x[:, 0:1])
+    return a1 * dtheta_tau - dtheta_xx + a2 * W * theta
 
 
 def boundary_1(x, on_boundary):
@@ -168,23 +178,30 @@ def boundary_0(x, on_boundary):
     return on_boundary and np.isclose(x[0], 0)
 
 
+def output_transform(x, y):
+    return x[:, 0:1] * y
+
+
+def func(x):
+    return q0_ad * (x[:, 0:1] ** 4) / 4 + 15 * (((x[:, 0:1] - 1) ** 2) * x[:, 0:1])/dT
+
+
 def create_system(config):
     global dde_seed
     dde.config.set_random_seed(dde_seed)
 
-    learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcl, w_bcr, w_ic = config
+    learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcr, w_ic = config
     
     geom = dde.geometry.Interval(0, 1)
     timedomain = dde.geometry.TimeDomain(0, 2)
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
-    bc_0 = dde.icbc.DirichletBC(geomtime, lambda x: 0, boundary_0)
-    bc_1 = dde.icbc.NeumannBC(geomtime, lambda x: -2*x[:, 1:], boundary_1)
+    bc_1 = dde.icbc.NeumannBC(geomtime, lambda x: q0_ad, boundary_1)
 
-    ic = dde.icbc.IC(geomtime, lambda x: 0, lambda _, on_initial: on_initial)
+    ic = dde.icbc.IC(geomtime, func, lambda _, on_initial: on_initial)
 
     data = dde.data.TimePDE(
-        geomtime, pde, [bc_0, bc_1, ic], num_domain=2560, num_boundary=100, num_initial=160
+        geomtime, pde_s, [bc_1, ic], num_domain=2560, num_boundary=100, num_initial=160
     )
 
     net = dde.nn.FNN(
@@ -192,21 +209,24 @@ def create_system(config):
         activation,
         initialization,
     )
+
+    net.apply_output_transform(output_transform)
+
     model = dde.Model(data, net)
 
-    loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
+    loss_weights = [w_domain, w_bcr, w_ic]
 
     model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
     return model
 
 
 def ic_obs(x):
-    return x[:, 0:1] * (6/5 - x[:, 0:1])
+    return q0_ad * (x[:, 0:1] ** 4) / 4
 
 
-def bc1_obs(x, theta, X):
+def func_obs(x, theta, X):
     dtheta_x = dde.grad.jacobian(theta, x, i=0, j=0)
-    return dtheta_x + 0.8 * x[:, 2:] + k * theta - k * x[:, 1:2]
+    return dtheta_x - q0_ad + k * theta - k * x[:, 1:2]
 
 
 def bc1_new_obs(x, theta, X):
@@ -219,21 +239,20 @@ def create_observer(config):
     global dde_seed
     dde.config.set_random_seed(dde_seed)
 
-    learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcl, w_bcr, w_ic = config
+    learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcr, w_ic = config
 
-    xmin = [0, -1]
-    xmax = [1, 0]
+    xmin = [0, 0]
+    xmax = [1, 1]
     geom = dde.geometry.Rectangle(xmin, xmax)
-    timedomain = dde.geometry.TimeDomain(0, 2)
+    timedomain = dde.geometry.TimeDomain(0, 1)
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
-    bc_0 = dde.icbc.DirichletBC(geomtime, lambda x: 0, boundary_0)
-    bc_1 = dde.icbc.OperatorBC(geomtime, bc1_new_obs, boundary_1)
+    bc_1 = dde.icbc.OperatorBC(geomtime, func_obs, boundary_1)
 
     ic = dde.icbc.IC(geomtime, ic_obs, lambda _, on_initial: on_initial)
 
     data = dde.data.TimePDE(
-        geomtime, lambda x, theta: pde_m(x, theta, W_avg), [bc_0, bc_1, ic], num_domain=2560, num_boundary=100, num_initial=160
+        geomtime, pde_s, [bc_1, ic], num_domain=2560, num_boundary=100, num_initial=160
     )
 
     net = dde.nn.FNN(
@@ -241,9 +260,12 @@ def create_observer(config):
         activation,
         initialization,
     )
+
+    net.apply_output_transform(output_transform)
+
     model = dde.Model(data, net)
 
-    loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
+    loss_weights = [w_domain, w_bcr, w_ic]
 
     model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
     return model
@@ -253,21 +275,20 @@ def create_multi_obs(config, W):
     global dde_seed
     dde.config.set_random_seed(dde_seed)
 
-    learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcl, w_bcr, w_ic = config
+    learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcr, w_ic = config
 
-    xmin = [0, -1]
-    xmax = [1, 0]
+    xmin = [0, 0]
+    xmax = [1, 1]
     geom = dde.geometry.Rectangle(xmin, xmax)
-    timedomain = dde.geometry.TimeDomain(0, 2)
+    timedomain = dde.geometry.TimeDomain(0, 1)
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
-    bc_0 = dde.icbc.DirichletBC(geomtime, lambda x: 0, boundary_0)
-    bc_1 = dde.icbc.OperatorBC(geomtime, bc1_new_obs, boundary_1)
+    bc_1 = dde.icbc.OperatorBC(geomtime, func_obs, boundary_1)
 
     ic = dde.icbc.IC(geomtime, ic_obs, lambda _, on_initial: on_initial)
 
     data = dde.data.TimePDE(
-        geomtime, lambda x, theta: pde_m(x, theta, W), [bc_0, bc_1, ic], num_domain=2560, num_boundary=100,
+        geomtime, lambda x, theta: pde_m(x, theta, W), [bc_1, ic], num_domain=2560, num_boundary=100,
         num_initial=160
     )
 
@@ -276,9 +297,12 @@ def create_multi_obs(config, W):
         activation,
         initialization,
     )
+
+    net.apply_output_transform(output_transform)
+
     model = dde.Model(data, net)
 
-    loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
+    loss_weights = [w_domain, w_bcr, w_ic]
 
     model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
     return model
@@ -331,7 +355,7 @@ def configure_subplot(ax, surface):
     ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     ax.tick_params(axis='both', labelsize=7, pad=2)
     ax.dist = 10
-    ax.view_init(20, -120)
+    ax.view_init(20, 160)
 
 
 def plot_3d(p):
@@ -375,7 +399,7 @@ def plot_3d(p):
     plt.show()
 
 
-def plot_obs(s, o):
+def plot_obs(s, o, msg):
     global output_path, dde_seed
     dde.config.set_random_seed(dde_seed)
 
@@ -410,7 +434,7 @@ def plot_obs(s, o):
     plt.subplots_adjust(wspace=0.15)
 
     # Save and show plot
-    plt.savefig(f"{folder_path}figures/obs_3d.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{folder_path}figures/{msg}.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -625,7 +649,7 @@ def mu(s, o, tau):
     for el in o:
         oss = el.predict(xo)
         scrt = np.abs(oss-th)
-        muu.append(8*scrt)
+        muu.append(scrt)
     muu = np.array(muu).reshape(len(muu),)
     return muu
 
@@ -636,7 +660,7 @@ def plot_weights(x, t, lam):
     colors = ['C3', 'lime', 'blue', 'purple', 'aqua', 'lightskyblue', 'darkred', 'k']
 
     for i in range(x.shape[0]):
-        plt.plot(1800 * t, x[i], alpha=1.0, linewidth=1.8, color=colors[i], label=f"Weight $p_{i+1}$")
+        plt.plot(1800 * t, x[i], alpha=1.0, linewidth=1.8, color=colors[i], label=f"Weight $p_{i}$")
 
     ax1.set_xlim(0, 1800)
     ax1.set_ylim(bottom=0.0)

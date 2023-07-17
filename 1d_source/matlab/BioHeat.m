@@ -4,4 +4,5 @@ clear all
 close all
 clc
 
-sol= syst; 
+%sol= OneDimBHSingleObs;
+sol= syst;

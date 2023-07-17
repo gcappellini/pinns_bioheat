@@ -40,19 +40,15 @@ ylabel('Time t');
 
 function [c,f,s] = OneDimBHpde(x,t,u,dudx)
 %La prima equazione è quella del sistema, a seguire gli osservatori
-a1 = 1.061375;
+a1 = 0.652778;
 a2 = 1.9125;
 a3 = 6.25e-05;
 qmet = 4200;
-beta = 1;
-cc = 16;
-L0 = 0.05;
-X0 = 0.09;
-p = 150/(1.97e-3);
-W_avg = 2.3;
+W_avg = 0.54;
 c = a1;
 f = 1.* dudx;
-s = -u(1)*a2*W_avg + a3*(qmet+beta*exp(-cc*L0*(X0-x))*p);
+source = 0; %put here the SAR term
+s = -u(1)*a2*W_avg + a3*(qmet+source);
 
 % --------------------------------------------------------------------------
 
@@ -69,7 +65,7 @@ u0 = 0; %(q0_ad/4)*x^4 + b*x*(x-1)^2;
 function [pl,ql,pr,qr] = OneDimBHbc(xl,ul,xr,ur,t)
 pl = ul(1);
 ql = 0;
-pr = 2 * t; %Neumann
+pr = t; %Neumann
 qr = 1;
 %pr = ur(1); %Dirichlet
 %qr = 0;

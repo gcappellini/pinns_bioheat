@@ -42,24 +42,18 @@ function [c,f,s] = OneDimBHpde(x,t,u,dudx)
 %La prima equazione è quella del sistema, a seguire gli osservatori
 a1 = 1.061375;
 a2 = 1.9125;
-a3 = 6.25e-05;
-qmet = 4200;
-beta = 1;
-cc = 16;
-L0 = 0.05;
-X0 = 0.09;
-p = 150/(1.97e-3);
 W_avg = 2.3;
 c = a1;
 f = 1.* dudx;
-s = -u(1)*a2*W_avg + a3*(qmet+beta*exp(-cc*L0*(X0-x))*p);
+s = -u(1)*a2*W_avg;
 
 % --------------------------------------------------------------------------
 
 % Code initial conditions
 
 function u0 = OneDimBHic(x)
-u0 = 0; %(q0_ad/4)*x^4 + b*x*(x-1)^2;
+q0_ad = 2
+u0 = (q0_ad/4)*x^4 + 1.875*x*(x-1)^2;
 
 
 % --------------------------------------------------------------------------
@@ -69,7 +63,7 @@ u0 = 0; %(q0_ad/4)*x^4 + b*x*(x-1)^2;
 function [pl,ql,pr,qr] = OneDimBHbc(xl,ul,xr,ur,t)
 pl = ul(1);
 ql = 0;
-pr = 2 * t; %Neumann
+pr = -2; %Neumann
 qr = 1;
 %pr = ur(1); %Dirichlet
 %qr = 0;
