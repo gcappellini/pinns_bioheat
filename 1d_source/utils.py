@@ -27,7 +27,7 @@ else:
 
 
 gp_seed = None
-dde_seed = 129
+dde_seed = 101
 ITERATION = 0
 
 current_file = os.path.abspath(__file__)
@@ -37,21 +37,13 @@ folder_path = f"{folder_pa}/"
 output_path = folder_path
 
 epochs = 20000
-n_calls = 100
-
-x = np.linspace(0, 1, 101)
-t = np.linspace(0, 1, 101)
-X, T = np.meshgrid(x, t)
-xs = np.vstack((np.ravel(X), np.ravel(T))).T
-xsup = np.vstack((np.ones_like(np.ravel(T)), np.ravel(T))).T
-
-
 
 # General parameters
 L0 = 0.05
 TM = 45
 Ta = 37
 tauf = 1800
+
 qmet = 4200
 
 # Tissue parameters
@@ -61,12 +53,11 @@ cb = 3825
 
 dT = TM - Ta
 alfa = rho * c / k_eff
-# K = 0.2
-# k_eff = k*(1+alfa*omegab)
 
 a1 = (alfa * (L0 ** 2)) / tauf
 a2 = (L0 ** 2) * cb / k_eff
 a3 = (L0 ** 2) / (k_eff * dT)
+
 
 # Antenna parameters
 beta = 1
@@ -79,18 +70,20 @@ k = 4
 
 
 # HPO setting
-n_calls = 100
-dim_learning_rate = Real(low=1e-5, high=5e-1, name="learning_rate", prior="log-uniform")
-dim_num_dense_layers = Integer(low=1, high=4, name="num_dense_layers")
-dim_num_dense_nodes = Integer(low=5, high=200, name="num_dense_nodes")
+n_calls = 1000
+dim_learning_rate = Real(low=0.000012774471609203795, high=0.21788060459464648, name="learning_rate", prior="log-uniform")
+dim_num_dense_layers = Integer(low=1, high=8, name="num_dense_layers")
+dim_num_dense_nodes = Integer(low=7, high=384, name="num_dense_nodes")
 dim_activation = Categorical(categories=["elu", "relu", "selu", "silu", "sigmoid", "sin", "swish", "tanh"],
                              name="activation")
-dim_initialization = Categorical(categories=["Glorot normal", "Glorot uniform", "He normal", "He uniform"],
+# ["elu", "relu", "selu", "silu", "sigmoid", "sin", "swish", "tanh"]
+dim_initialization = Categorical(categories=["Glorot uniform", "He normal", "He uniform"],
                              name="initialization")
-dim_weight_ic = Integer(low=1, high=100, name="weight_ic")
-dim_weight_bcl = Integer(low=1, high=100, name="weight_bcl")
-dim_weight_bcr = Integer(low=1, high=100, name="weight_bcr")
-dim_weight_domain = Integer(low=1, high=100, name="weight_domain")
+dim_w_domain = Integer(low=1, high=178, name="w_domain")
+dim_w_bcl = Integer(low=1, high=250, name="w_bcl")
+dim_w_bcr = Integer(low=1, high=198, name="w_bcr")
+dim_w_ic = Integer(low=1, high=182, name="w_ic")
+
 
 dimensions = [
     dim_learning_rate,
@@ -98,10 +91,10 @@ dimensions = [
     dim_num_dense_nodes,
     dim_activation,
     dim_initialization,
-    dim_weight_ic,
-    dim_weight_bcl,
-    dim_weight_bcr,
-    dim_weight_domain
+    dim_w_ic,
+    dim_w_bcl,
+    dim_w_bcr,
+    dim_w_domain
 ]
 
 
@@ -129,33 +122,25 @@ def inizia_hpo():
 
 # Considero il caso flusso costante
 def gen_testdata():
-    data = np.loadtxt(f"{folder_path}matlab/output_matlab_system.txt")
+    data = np.loadtxt(f"{folder_path}matlab/output_matlab_pde.txt")
     x, t, exact = data[:, 0:1].T, data[:, 1:2].T, data[:, 2:].T
     X = np.vstack((x, t)).T
     y = exact.flatten()[:, None]
     return X, y
 
 
-def gen_obsdata():
-    data = np.loadtxt(f"{folder_path}matlab/output_matlab_observer.txt")
-    x, t, exact = data[:, 0:1].T, data[:, 1:2].T, data[:, 2:].T
-    # X = np.vstack((x, t)).T
-    y = exact.flatten()[:, None]
-    return x, t, y
-
-
 def source(s):
     return qmet + beta*torch.exp(-cc*L0*(X0-s))*p
 
 
-def pde(x, theta):
+def pde_s(x, theta, W):
     dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=1)
     dtheta_xx = dde.grad.hessian(theta, x, i=0, j=0)
-    return a1 * dtheta_tau - dtheta_xx + a2 * W_avg * theta - a3 * source(x[:, 0:1])
+    return a1 * dtheta_tau - dtheta_xx + a2 * W * theta - a3 * source(x[:, 0:1])
 
 
 def pde_m(x, theta, W):
-    dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=2)
+    dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=3)
     dtheta_xx = dde.grad.hessian(theta, x, i=0, j=0)
     return a1 * dtheta_tau - dtheta_xx + a2 * W * theta - a3 * source(x[:, 0:1])
 
@@ -168,7 +153,8 @@ def boundary_0(x, on_boundary):
     return on_boundary and np.isclose(x[0], 0)
 
 
-def create_system(config):
+
+def create_system(config, W):
     global dde_seed
     dde.config.set_random_seed(dde_seed)
 
@@ -179,12 +165,12 @@ def create_system(config):
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
     bc_0 = dde.icbc.DirichletBC(geomtime, lambda x: 0, boundary_0)
-    bc_1 = dde.icbc.NeumannBC(geomtime, lambda x: -2*x[:, 1:], boundary_1)
+    bc_1 = dde.icbc.NeumannBC(geomtime, lambda x: -1, boundary_1)
 
     ic = dde.icbc.IC(geomtime, lambda x: 0, lambda _, on_initial: on_initial)
 
     data = dde.data.TimePDE(
-        geomtime, pde, [bc_0, bc_1, ic], num_domain=2560, num_boundary=100, num_initial=160
+        geomtime, lambda x, theta: pde_s(x, theta, W), [bc_0, bc_1, ic], num_domain=2560, num_boundary=100, num_initial=160
     )
 
     net = dde.nn.FNN(
@@ -192,6 +178,8 @@ def create_system(config):
         activation,
         initialization,
     )
+
+
     model = dde.Model(data, net)
 
     loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
@@ -204,81 +192,52 @@ def ic_obs(x):
     return x[:, 0:1] * (6/5 - x[:, 0:1])
 
 
+
 def bc1_obs(x, theta, X):
     dtheta_x = dde.grad.jacobian(theta, x, i=0, j=0)
-    return dtheta_x + 0.8 * x[:, 2:] + k * theta - k * x[:, 1:2]
+    # return dtheta_x + x[:, 2:3] + k * theta - k * x[:, 1:2]
+    return dtheta_x - x[:, 2:3] - k * (x[:, 1:2] - theta) 
 
 
-def bc1_new_obs(x, theta, X):
-    dtheta_x = dde.grad.jacobian(theta, x, i=0, j=0)
-    flux = dde.grad.jacobian(x, x, i=1, j=0)
-    return dtheta_x + flux + k * theta - k * x[:, 1:2]
+
+def output_transform(x, y):
+    return x[:, 0:1] * y
 
 
-def create_observer(config):
+
+def create_observer(config, W):
     global dde_seed
     dde.config.set_random_seed(dde_seed)
 
     learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcl, w_bcr, w_ic = config
 
-    xmin = [0, -1]
-    xmax = [1, 0]
-    geom = dde.geometry.Rectangle(xmin, xmax)
+    xmin = [0, 0, -2]
+    xmax = [1, 1, 0]
+    geom = dde.geometry.Cuboid(xmin, xmax)
     timedomain = dde.geometry.TimeDomain(0, 2)
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
     bc_0 = dde.icbc.DirichletBC(geomtime, lambda x: 0, boundary_0)
-    bc_1 = dde.icbc.OperatorBC(geomtime, bc1_new_obs, boundary_1)
+    bc_1 = dde.icbc.OperatorBC(geomtime, bc1_obs, boundary_1)
 
     ic = dde.icbc.IC(geomtime, ic_obs, lambda _, on_initial: on_initial)
 
     data = dde.data.TimePDE(
-        geomtime, lambda x, theta: pde_m(x, theta, W_avg), [bc_0, bc_1, ic], num_domain=2560, num_boundary=100, num_initial=160
+        geomtime, lambda x, theta: pde_m(x, theta, W), [bc_0, bc_1, ic], num_domain=2560, num_boundary=100, num_initial=160
     )
 
     net = dde.nn.FNN(
-        [3] + [num_dense_nodes] * num_dense_layers + [1],
+        [4] + [num_dense_nodes] * num_dense_layers + [1],
         activation,
         initialization,
     )
+
+    # net.apply_output_transform(output_transform)
+
     model = dde.Model(data, net)
 
     loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
-
-    model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
-    return model
-
-
-def create_multi_obs(config, W):
-    global dde_seed
-    dde.config.set_random_seed(dde_seed)
-
-    learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcl, w_bcr, w_ic = config
-
-    xmin = [0, -1]
-    xmax = [1, 0]
-    geom = dde.geometry.Rectangle(xmin, xmax)
-    timedomain = dde.geometry.TimeDomain(0, 2)
-    geomtime = dde.geometry.GeometryXTime(geom, timedomain)
-
-    bc_0 = dde.icbc.DirichletBC(geomtime, lambda x: 0, boundary_0)
-    bc_1 = dde.icbc.OperatorBC(geomtime, bc1_new_obs, boundary_1)
-
-    ic = dde.icbc.IC(geomtime, ic_obs, lambda _, on_initial: on_initial)
-
-    data = dde.data.TimePDE(
-        geomtime, lambda x, theta: pde_m(x, theta, W), [bc_0, bc_1, ic], num_domain=2560, num_boundary=100,
-        num_initial=160
-    )
-
-    net = dde.nn.FNN(
-        [3] + [num_dense_nodes] * num_dense_layers + [1],
-        activation,
-        initialization,
-    )
-    model = dde.Model(data, net)
-
-    loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
+    
 
     model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
     return model
@@ -287,33 +246,66 @@ def create_multi_obs(config, W):
 def train_model(model, name):
     global dde_seed, output_path
     dde.config.set_random_seed(dde_seed)
+    # early_stopping = dde.callbacks.EarlyStopping(min_delta=1e-6, patience=5000)
+
+    losshistory, train_state = model.train(iterations=epochs,
+                                           model_save_path=f"{output_path}model/{name}.ckpt")#,
+                                        #    callbacks=[early_stopping])
+    dde.saveplot(losshistory, train_state, issave=True, isplot=False, loss_fname=f"{name}_loss",
+                 train_fname=f"{name}_train", test_fname=f"{name}_test",
+                 output_dir=f"{output_path}history")
+    return model
+
+
+def sup_theta(e):
+    x = np.linspace(0, 1, 101)
+    t = np.linspace(0, 1, 101)
+    X, T = np.meshgrid(x, t)
+    xsup = np.vstack((np.ones_like(np.ravel(T)), np.ravel(T))).T
+    xx = np.vstack((np.ravel(X), np.ravel(T))).T
+    a = e.predict(xsup).T
+    b = e.predict(xx).T
+    np.savez(f"{folder_path}pinns/sup_theta.npz", data=a)
+    np.savez(f"{folder_path}pinns/theta.npz", data=b)
+    # return a
+
+
+def gen_obsdata():
+    data = np.loadtxt(f"{folder_path}matlab/output_matlab_observer.txt")
+    supp_theta = np.load(f"{folder_path}pinns/sup_theta.npz")
+    sup_theta = supp_theta['data']
+    x, t, exact = data[:, 0:1].T, data[:, 1:2].T, data[:, 2:].T
+    fl = np.full_like(t, -1)
+    X = np.vstack((x, sup_theta, fl, t)).T
+    y = exact.flatten()[:, None]
+    return X, y
+
+
+def train2_model(model, name):
+    global dde_seed, output_path
+    dde.config.set_random_seed(dde_seed)
 
     losshistory, train_state = model.train(iterations=epochs,
                                            model_save_path=f"{output_path}model/{name}.ckpt")
     dde.saveplot(losshistory, train_state, issave=True, isplot=False, loss_fname=f"{name}_loss",
                  train_fname=f"{name}_train", test_fname=f"{name}_test",
                  output_dir=f"{output_path}history")
-    return model
-
+    
     # X, y_true = gen_testdata()
-    # y_pred = model.predict(X)
-    # er = dde.metrics.l2_relative_error(y_true, y_pred)
+    XO, y_true = gen_obsdata()
+    y_pred = model.predict(XO)
+    er = dde.metrics.l2_relative_error(y_true, y_pred)
 
-    # x, t, y_true = gen_obsdata()
-    # output = [0.0002889, 4, 61, "silu", "He normal", 19, 100, 26, 81]
-    # ff = create_system(output)
-    # # gg = train_model(ff, "syst_hpo")
-    # gg = restore_model(ff, "syst_hpo")
-    # xo = np.vstack((x, gg.predict(xsup).reshape(10201,), t)).T
-    # obs = model.predict(xo)
-    # er = dde.metrics.l2_relative_error(y_true, obs)
+    # pp_theta = np.load(f"{folder_path}pinns/theta.npz")
+    # theta = pp_theta['data']
+    # er = dde.metrics.l2_relative_error(theta, y_pred)
     
     # train = np.array(losshistory.loss_train).sum(axis=1).ravel()
     # test = np.array(losshistory.loss_test).sum(axis=1).ravel()
     # metric = np.array(losshistory.metrics_test).sum(axis=1).ravel()
-
     # er = test.min()
-    # return er
+    
+    return er
 
 
 def restore_model(model, name):
@@ -325,6 +317,9 @@ def restore_model(model, name):
 
 
 def configure_subplot(ax, surface):
+    x = np.linspace(0, 1, 101)
+    t = np.linspace(0, 1, 101)
+    X, T = np.meshgrid(x, t)
     ax.plot_surface(X, 1800 * T, surface, cmap='inferno', alpha=.8)
     ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -371,28 +366,29 @@ def plot_3d(p):
     plt.subplots_adjust(wspace=0.15)
 
     # Save and show plot
-    plt.savefig(f"{folder_path}figures/syst_3d.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{folder_path}figures/cfr_sys.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 
-def plot_obs(s, o):
+def plot_3d_obs(o):
     global output_path, dde_seed
     dde.config.set_random_seed(dde_seed)
 
-    sys = s.predict(xs)
-    xo = np.vstack((np.ravel(X), s.predict(xsup).reshape(len(np.ravel(X)),), np.ravel(T))).T
-    obs = o.predict(xo)
+    XO, y_true = gen_obsdata()
+    y_pred = o.predict(XO)
+
+    ll = int(np.sqrt(len(y_true)))
 
     # Create 3D axes
     fig = plt.figure(figsize=(9, 4))
 
     # Define column titles
-    col_titles = ['System', 'Observer', 'Error']
+    col_titles = ['MATLAB', 'PINNs', 'Error']
 
     # Define surfaces for each subplot
     surfaces = [
-        [sys.reshape(X.shape), obs.reshape(X.shape),
-         np.abs(sys - obs).reshape(X.shape)]
+        [y_true.reshape(ll, ll), y_pred.reshape(ll, ll),
+         np.abs(y_true - y_pred).reshape(ll, ll)]
     ]
 
     # Create a grid of subplots
@@ -410,17 +406,20 @@ def plot_obs(s, o):
     plt.subplots_adjust(wspace=0.15)
 
     # Save and show plot
-    plt.savefig(f"{folder_path}figures/obs_3d.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{folder_path}figures/cfr_obs.png", dpi=300, bbox_inches='tight')
     plt.show()
 
-
-def plot_multi_obs(s, o, ww):
+def plot_1obs(s, o):
     global output_path, dde_seed
     dde.config.set_random_seed(dde_seed)
 
-    sys = s.predict(xs)
-    xo = np.vstack((np.ravel(X), s.predict(xsup).reshape(len(np.ravel(X)),), np.ravel(T))).T
-    obs = o.predict(xo)
+    XO, y_true = gen_obsdata()
+
+    XS = np.delete(XO, [1, 2], axis=1)
+    sys = s.predict(XS)
+    obs = o.predict(XO)
+
+    ll = int(np.sqrt(len(y_true)))
 
     # Create 3D axes
     fig = plt.figure(figsize=(9, 4))
@@ -430,8 +429,8 @@ def plot_multi_obs(s, o, ww):
 
     # Define surfaces for each subplot
     surfaces = [
-        [sys.reshape(X.shape), obs.reshape(X.shape),
-         np.abs(sys - obs).reshape(X.shape)]
+        [sys.reshape(ll, ll), obs.reshape(ll, ll),
+         np.abs(sys - obs).reshape(ll, ll)]
     ]
 
     # Create a grid of subplots
@@ -449,8 +448,9 @@ def plot_multi_obs(s, o, ww):
     plt.subplots_adjust(wspace=0.15)
 
     # Save and show plot
-    plt.savefig(f"{folder_path}figures/{ww}_3d.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{folder_path}figures/plot_1obs.png", dpi=300, bbox_inches='tight')
     plt.show()
+
 
 
 def plot_hpo(ppre, ppost):
@@ -496,15 +496,14 @@ def plot_hpo(ppre, ppost):
 
 
 @use_named_args(dimensions=dimensions)
-def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, weight_ic, weight_bcl, weight_bcr, weight_domain):
+def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcl, w_bcr, w_ic):
     global ITERATION, gp_seed, dde_seed, output_path
-    config = [learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, weight_ic, weight_bcl, weight_bcr, weight_domain]
+    config = [learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcl, w_bcr, w_ic]
     dde.config.set_random_seed(dde_seed)
-
     # start a new wandb run to track this script
     wandb.init(
         # set the wandb project where this run will be logged
-        project="hpo1-obs-source",
+        project="super-hpo-obs",
 
         # track hyperparameters and run metadata
         config={
@@ -513,10 +512,10 @@ def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation, initia
             "num_dense_nodes": num_dense_nodes,
             "activation": activation,
             "initialization": initialization,
-            "weight_ic": weight_ic,
-            "weight_bcl": weight_bcl,
-            "weight_bcr": weight_bcr,
-            "weight_domain": weight_domain        
+            "w_domain": w_domain,
+            "w_bcl": w_bcl,
+            "w_bcr": w_bcr,
+            "w_ic": w_ic        
         }
     )
 
@@ -529,18 +528,18 @@ def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation, initia
     print("num_dense_nodes:", num_dense_nodes)
     print("activation:", activation)
     print("initialization:", initialization)
-    print("weight_ic:", weight_ic)
-    print("weight_bcl:", weight_bcl)
-    print("weight_bcr:", weight_bcr)
-    print("weight_domain:", weight_domain)
+    print("w_domain:", w_domain)
+    print("w_bcl:", w_bcl)
+    print("w_bcr:", w_bcr)
+    print("w_ic:", w_ic)
     print()
 
     start_time = time.time()
 
     # Create the neural network with these hyper-parameters.
-    mm = create_observer(config)
+    mm = create_observer(config, 2.3)
     # possibility to change where we save
-    error = train_model(mm, ITERATION)
+    error = train2_model(mm, ITERATION)
     # print(accuracy, 'accuracy is')
 
     if np.isnan(error):
@@ -556,10 +555,10 @@ def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation, initia
         "Num Dense Nodes": num_dense_nodes,
         "Activation": activation,
         "Initialization": initialization,
-        "Weight_ic": weight_ic,
-        "Weight_bcl": weight_bcl,
-        "Weight_bcr": weight_bcr,
-        "Weight_domain": weight_domain,
+        "W_domain": w_domain,
+        "W_bcl": w_bcl,
+        "W_bcr": w_bcr,
+        "W_ic": w_ic,
         "Error": error,
         "Time Spent": time_spent
     }
@@ -588,7 +587,7 @@ def hpo(default_parameters):
     search_result = gp_minimize(
         func=fitness,
         dimensions=dimensions,
-        acq_func="PI",  # Probability Improvement.
+        acq_func="gp_hedge",  # Probability Improvement.
         n_calls=n_calls,
         x0=default_parameters,
         random_state=gp_seed,
@@ -620,12 +619,13 @@ def hpo(default_parameters):
 def mu(s, o, tau):
     xs = np.vstack((np.ones_like(tau), tau)).T
     th = s.predict(xs)
-    xo = np.vstack((np.ones_like(tau), th, tau)).T
+    fl = np.full_like(tau, -1)
+    xo = np.vstack((np.ones_like(tau), th, fl, tau)).T
     muu = []
     for el in o:
         oss = el.predict(xo)
         scrt = np.abs(oss-th)
-        muu.append(8*scrt)
+        muu.append(scrt)
     muu = np.array(muu).reshape(len(muu),)
     return muu
 
@@ -636,7 +636,7 @@ def plot_weights(x, t, lam):
     colors = ['C3', 'lime', 'blue', 'purple', 'aqua', 'lightskyblue', 'darkred', 'k']
 
     for i in range(x.shape[0]):
-        plt.plot(1800 * t, x[i], alpha=1.0, linewidth=1.8, color=colors[i], label=f"Weight $p_{i+1}$")
+        plt.plot(1800 * t, x[i], alpha=1.0, linewidth=1.8, color=colors[i], label=f"Weight $p_{i}$")
 
     ax1.set_xlim(0, 1800)
     ax1.set_ylim(bottom=0.0)
@@ -649,6 +649,7 @@ def plot_weights(x, t, lam):
     plt.savefig(f"{folder_path}figures/weights_lam_{lam}.png", dpi=150, bbox_inches='tight')
 
     plt.show()
+
 
 
 
