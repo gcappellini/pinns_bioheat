@@ -44,7 +44,7 @@ a3 = (L0 ** 2) / (k_eff * dT)
 
 
 def source(s):
-    return qmet #put here the SAR term
+    return qmet
 
 def pde(x, theta):
     dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=1)

@@ -47,8 +47,7 @@ qmet = 4200;
 W_avg = 0.54;
 c = a1;
 f = 1.* dudx;
-source = 0; %put here the SAR term
-s = -u(1)*a2*W_avg + a3*(qmet+source);
+s = -u(1)*a2*W_avg + a3*(qmet);
 
 % --------------------------------------------------------------------------
 
