@@ -25,6 +25,7 @@ else:
 
     sin = tf.sin
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 gp_seed = None
 dde_seed = 101
