@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class SReLU(tf.keras.layers.Layer):
-    def __init__(self, tr_init=1.0, ar_init=0.1, tl_init=-1.0, al_init=0.1):
+    def __init__(self, tr_init=0.4, ar_init=2.0, tl_init=-0.4, al_init=0.4):
         super(SReLU, self).__init__()
         self.tr = tf.Variable(tr_init, trainable=True, name='tr')
         self.ar = tf.Variable(ar_init, trainable=True, name='ar')
@@ -12,8 +12,8 @@ class SReLU(tf.keras.layers.Layer):
 
     def call(self, inputs):
         s_greater_tr = tf.where(inputs > self.tr, self.tr + self.ar * (inputs - self.tr), inputs)
-        s_between_tl_tr = tf.where(tf.logical_and(inputs > self.tl, inputs <= self.tr), inputs, s_greater_tr)
-        s_less_tl = tf.where(inputs < self.tl, self.tl + self.al * (inputs - self.tl), s_between_tl_tr)
+        s_between_tl_tr = tf.where(tf.logical_and(inputs > self.tl, inputs < self.tr), inputs, s_greater_tr)
+        s_less_tl = tf.where(inputs <= self.tl, self.tl + self.al * (inputs - self.tl), s_between_tl_tr)
         return s_less_tl
 
     def compute_output_shape(self, input_shape):
@@ -23,7 +23,7 @@ class SReLU(tf.keras.layers.Layer):
 srelu_layer = SReLU()
 
 # Create a range of values for plotting
-x = np.linspace(-2, 2, 400)
+x = np.linspace(-1, 1, 400)
 x_tensor = tf.constant(x, dtype=tf.float32)
 
 # Calculate the SReLU activation and its derivative

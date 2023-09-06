@@ -31,9 +31,10 @@ k_eff = 5
 alfa = rho * c / k_eff
 # k_eff = k*(1+alfa*omegab)
 
-W_avg = 0.54
-W_min = 0.36
-W_max = 0.72
+W_tot = np.linspace(0.45, 4, num=8)
+W_ref = W_tot[3]
+W_min = 0.45
+W_max = 4
 cb = 3825
 
 dT = TM - Ta
@@ -53,7 +54,7 @@ def source(s):
 def pde(x, theta):
     dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=1)
     dtheta_xx = dde.grad.hessian(theta, x, i=0, j=0)
-    return a1 * dtheta_tau - dtheta_xx + a2 * W_avg * theta - a3 * source(x[:, 0:1])
+    return a1 * dtheta_tau - dtheta_xx + a2 * W_ref * theta - a3 * source(x[:, 0:1])
 
 def pde_m(x, theta, W):
     dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=3)

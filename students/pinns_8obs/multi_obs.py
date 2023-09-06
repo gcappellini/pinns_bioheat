@@ -10,15 +10,16 @@ folder_path = f"{folder_pa}/"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-W_tot = np.linspace(0.45, 4, num=8)
-W_ref = W_tot[3]
-
+"Alleno la NN che simula il sistema:"
 a = [0.001, 2, 30, "elu", "Glorot normal", 1, 1, 1, 1]
 b = utils.create_system(a)
 ss = utils.train_model(b, "sys")
 # ss = utils.restore_model(b, "sys")
 utils.sup_theta(ss)
 
+"Alleno la NN che simula l'osservatore singolo (con il valore di W corretto)"
+W_tot = np.linspace(0.45, 4, num=8)
+W_ref = W_tot[3]
 c = [0.0001046, 4, 30, "sigmoid", "He normal", 1, 1, 1, 1]
 d = utils.create_observer(c, W_ref)
 oo = utils.train_model(d, "obs")
@@ -26,7 +27,7 @@ oo = utils.train_model(d, "obs")
 utils.plot_1obs_tf(ss, oo)
 
 
-
+"Alleno le NN che simulano l'osservatore multi-modello"
 multi_obs = []
 for j in range(len(W_tot)):
     model = utils.create_observer(c, W_tot[j])
@@ -34,6 +35,7 @@ for j in range(len(W_tot)):
     # modelu = utils.restore_model(model, f"obs{j+1}")
     multi_obs.append(modelu)
 
+"Risolvo l'equazione differenziale per i pesi degli osservatori, con due valori di lambda (5 e 200)"
 p0 = np.array([1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8])
 lem = [5, 200]
 
