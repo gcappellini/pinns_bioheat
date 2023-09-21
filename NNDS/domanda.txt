@@ -1,0 +1,14 @@
+Hello, chat GPT. 
+
+For a university project, I have to implement a continual learning setup and verticalize it on my PhD research object. 
+
+The research object involves solving 1D pennes bioheat equation with neural networks. the key concept is to reconstruct the temperature profile on the entire domain measuring only superficial temperature. Other unknowns can be considered: perfusion value, and type of tissue. With a traditional solver (MATLAB), I have created a dataset in which features X are: position, time, and corresponding superficial temperature. labels are temperature (y1),  perfusion (y2), and type of tissue (y3).
+
+Can you implement a multi-head model and train it on the three tasks sequentially using elastic weight consolidation?
+
+Show the mean accuracy and the backward transfer after training. Implement them by subclassing tf.keras.metrics.Metric.
+
+Show some performance graphs with the id of the task on the x-axis.
+_______________________________________________________________________________
+
+Since the first two tasks are of regression type, it is ok to use 'mae' metric. The third task is classification type, can we use 'MeanAccuracy' only for this task?

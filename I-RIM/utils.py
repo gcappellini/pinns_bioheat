@@ -48,8 +48,8 @@ tauf = 1800
 qmet = 4200
 
 # Tissue parameters
-# rho, c, k_eff, W_min, W_avg, W_max = 888, 2387, 1.2, 0.36, 0.54, 0.72           # fat
-rho, c, k_eff, W_min, W_avg, W_max = 1050, 3639, 5, 0.45, 2.3, 4           # muscle
+rho, c, k_eff, W_min, W_avg, W_max = 888, 2387, 1.2, 0.36, 0.54, 0.72           # fat
+# rho, c, k_eff, W_min, W_avg, W_max = 1050, 3639, 5, 0.45, 2.3, 4           # muscle
 cb = 3825
 
 dT = TM - Ta

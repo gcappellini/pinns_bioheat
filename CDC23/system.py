@@ -93,7 +93,7 @@ def y2(t):
     Xp = torch.vstack((one, t)).T
     return torch.tensor(sys.predict(Xp))
 
-def old_fun(x):
+def fun(x):
     e = np.array(sys.predict(x)).reshape(len(x), )
     return e
 

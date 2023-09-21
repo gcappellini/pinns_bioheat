@@ -104,8 +104,8 @@ s = [-u(1)*a2*W_avg;
 % Code initial conditions
 
 function u0 = OneDimBHic(x)
-q0_ad = 3.125;
-u0 = [(q0_ad/2)*x^2; (q0_ad)*x];
+q0_ad = 2.0;
+u0 = [(q0_ad/4)*x^4+15*((x-1)^2)*x/8; (q0_ad)*x];
 
 
 % --------------------------------------------------------------------------
@@ -114,7 +114,7 @@ u0 = [(q0_ad/2)*x^2; (q0_ad)*x];
 
 function [pl,ql,pr,qr] = OneDimBHbc(xl,ul,xr,ur,t)
 k = 4;
-q0_ad = 3.125;
+q0_ad = 2.0;
 pl = [ul(1); ul(2)];
 ql = [0; 0];
 pr = [-q0_ad; -q0_ad-k*(ur(1)-ur(2))];
