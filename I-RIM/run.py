@@ -22,7 +22,7 @@ b = utils.create_system(confi, W_ref)
 ss = utils.restore_model(b, "sys")
 utils.sup_theta(ss)
 # utils.plot_3d(ss)
-utils.plot_3d_sys(ss)
+# utils.plot_3d_sys(ss)
 
 # confi2 = [0.06552, 1, 189, "selu", "He normal", 93, 51, 43, 158]
 # utils.inizia_hpo()
@@ -44,12 +44,12 @@ utils.plot_3d_sys(ss)
 multi_obs = []
 for j in range(len(W_tot)):
     model = utils.create_observer(confi, W_tot[j])
-    modelu = utils.train_model(model, f"obs{j}")
-    # modelu = utils.restore_model(model, f"obs{j}")
+    # modelu = utils.train_model(model, f"obs{j}")
+    modelu = utils.restore_model(model, f"obs{j}")
     multi_obs.append(modelu)
 
 p0 = np.array([1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8])
-lem = [200]
+lem = [20, 100, 2000]
 
 for lam in lem:
 # lam = 5
@@ -73,8 +73,8 @@ for lam in lem:
     np.save(f'{folder_path}pinns/weights_lambda_{lam}.npy', weights)
     utils.plot_weights(x, t, lam)
 
-utils.plot_8obs_tf(ss, multi_obs)
-utils.plot_8obs_l2(ss, multi_obs)
+# utils.plot_8obs_tf(ss, multi_obs)
+# utils.plot_8obs_l2(ss, multi_obs)
 
 
 
