@@ -40,17 +40,11 @@ output_path = folder_path
 epochs = 20000
 
 # General parameters
-L0 = 0.05
-TM = 45
-Ta = 37
-tauf = 1800
-
-qmet = 4200
+L0, TM, Ta, tauf, qmet = 0.05, 45, 37, 1800, 4200
 
 # Tissue parameters
-rho, c, k_eff, W_min, W_avg, W_max = 888, 2387, 1.2, 0.36, 0.54, 0.72           # fat
-# rho, c, k_eff, W_min, W_avg, W_max = 1050, 3639, 5, 0.45, 2.3, 4           # muscle
-cb = 3825
+# rho, c, k_eff, W_min, W_avg, W_max, cb = 888, 2387, 1.2, 0.36, 0.54, 0.72, 3825           # fat
+rho, c, k_eff, W_min, W_avg, W_max, cb = 1050, 3639, 5, 0.45, 2.48, 4, 3825           # muscle
 
 dT = TM - Ta
 alfa = rho * c / k_eff
@@ -61,13 +55,11 @@ a3 = (L0 ** 2) / (k_eff * dT)
 
 
 # Antenna parameters
-beta = 1
-cc = 16
-X0 = 0.09
-p = 150/(1.97e-3)
+beta, cc, X0, p = 1, 16, 0.09, 76142.131
+
 
 # Observer parameters
-k = 4
+k = 1
 
 
 # HPO setting
@@ -595,11 +587,11 @@ def plot_8obs_tf(ss, multi_obs):
     ax2.plot(x, o0f, alpha=1.0, linewidth=1.8, color='C3', label="Observer1")
     ax2.plot(x, o1f, alpha=1.0, linewidth=1.8, color='lime', label="Observer2")
     ax2.plot(x, o2f, alpha=1.0, linewidth=1.8, color='blue', label="Observer3")
-    ax2.plot(x, o3f, alpha=1.0, linewidth=1.8, color='aqua', label="Observer4")
-    ax2.plot(x, o4f, alpha=1.0, linestyle="dashed", linewidth=1.8, color='lightskyblue', label="Observer5")
-    ax2.plot(x, o5f, alpha=1.0, linestyle="dashdot", linewidth=1.8, color='darkred', label="Observer6")
-    ax2.plot(x, o6f, alpha=1.0, linestyle="dashed", linewidth=1.8, color='deeppink', label="Observer7")
-    ax2.plot(x, o7f, alpha=1.0, linestyle="dashed", linewidth=1.8, color='purple', label="Observer8")
+    ax2.plot(x, o3f, alpha=1.0, linewidth=1.8, color='purple', label="Observer4")
+    ax2.plot(x, o4f, alpha=1.0, linestyle="dashed", linewidth=1.8, color='aqua', label="Observer5")
+    ax2.plot(x, o5f, alpha=1.0, linestyle="dashdot", linewidth=1.8, color='lightskyblue', label="Observer6")
+    ax2.plot(x, o6f, alpha=1.0, linestyle="dashed", linewidth=1.8, color='darkred', label="Observer7")
+    ax2.plot(x, o7f, alpha=1.0, linestyle="dashed", linewidth=1.8, color='k', label="Observer8")
     ax2.plot(x, o8f, linestyle='None', marker="X", color='gold', label="MM adaptive observer")
 
     # ax2.set_ylim(39.5, 42)
@@ -613,7 +605,7 @@ def plot_8obs_tf(ss, multi_obs):
     ax2.legend()
     ax2.set_ylabel(ylabel=r"Temperature")
     ax2.set_xlabel(xlabel=r"Distance $x$")
-    ax2.set_title(r"Solutions at $t=1$", weight='semibold')
+    ax2.set_title(r"Solutions at $\tau=t_f$", weight='semibold')
 
     plt.grid()
 
