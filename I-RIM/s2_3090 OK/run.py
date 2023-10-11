@@ -18,38 +18,38 @@ confi = [0.0008729, 4, 37, "silu", "He normal", 28, 99, 37, 37]
 # # a = utils.hpo(confi)
 # a = [0.0008729, 4, 37, "silu", "He normal", 28, 99, 37, 37]
 b = utils.create_system(confi, W_ref)
-# ss = utils.train_model(b, "sys")
-ss = utils.restore_model(b, "sys")
+ss = utils.train_model(b, "sys")
+# ss = utils.restore_model(b, "sys")
 utils.sup_theta(ss)
-# utils.plot_3d(ss)
-# utils.plot_3d_sys(ss)
+utils.plot_3d(ss)
+utils.plot_3d_sys(ss)
 
 # confi2 = [0.06552, 1, 189, "selu", "He normal", 93, 51, 43, 158]
 # utils.inizia_hpo()
 # c = utils.hpo(confi2)
-# c = [0.0001046, 4, 265, "sigmoid", "He normal", 109, 125, 156, 178]
-# d = utils.create_observer(confi, W_ref)
-# oo = utils.train_model(d, "obs")
+c = [0.0001046, 4, 265, "sigmoid", "He normal", 109, 125, 156, 178]
+d = utils.create_observer(c, W_ref)
+oo = utils.train_model(d, "obs")
 # print(oo)
 # print("----------------")
 # oo = utils.restore_model(d, "obs")
 # utils.plot_3d_obs(oo)
 
-# utils.plot_1obs(ss, oo)
-# utils.plot_1obs_tf(ss, oo)
-# utils.plot_1obs_l2(ss, oo)
+utils.plot_1obs(ss, oo)
+utils.plot_1obs_tf(ss, oo)
+utils.plot_1obs_l2(ss, oo)
 
 
 
 multi_obs = []
 for j in range(len(W_tot)):
     model = utils.create_observer(confi, W_tot[j])
-    # modelu = utils.train_model(model, f"obs{j}")
-    modelu = utils.restore_model(model, f"obs{j}")
+    modelu = utils.train_model(model, f"obs{j}")
+    # modelu = utils.restore_model(model, f"obs{j}")
     multi_obs.append(modelu)
 
 p0 = np.array([1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8])
-lem = [20]
+lem = [5, 20, 200]
 
 for lam in lem:
 # lam = 5

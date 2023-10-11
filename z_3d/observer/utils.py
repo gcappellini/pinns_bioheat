@@ -90,6 +90,19 @@ dimensions = [
     dim_w_domain
 ]
 
+def inizia():
+    # Crea la struttura delle cartelle
+    cartella_figure = f"{output_path}figures"
+    cartella_history = f"{output_path}history"
+    cartella_model = f"{output_path}model"
+
+    # Crea le cartelle se non esistono già
+    os.makedirs(cartella_figure, exist_ok=True)
+    os.makedirs(cartella_history, exist_ok=True)
+    os.makedirs(cartella_model, exist_ok=True)
+
+    return output_path
+
 
 def inizia_hpo():
     global output_path, gp_seed, dde_seed
@@ -126,14 +139,8 @@ def source(s):
     return qmet + beta*torch.exp(-cc*L0*(X0-s))*p
 
 
-def pde_s(x, theta, W):
-    dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=1)
-    dtheta_xx = dde.grad.hessian(theta, x, i=0, j=0)
-    return a1 * dtheta_tau - dtheta_xx + a2 * W * theta - a3 * source(x[:, 0:1])
-
-
 def pde_m(x, theta, W):
-    dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=3)
+    dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=4)
     dtheta_xx = dde.grad.hessian(theta, x, i=0, j=0)
     return a1 * dtheta_tau - dtheta_xx + a2 * W * theta - a3 * source(x[:, 0:1])
 
@@ -146,56 +153,17 @@ def boundary_0(x, on_boundary):
     return on_boundary and np.isclose(x[0], 0)
 
 
-
-def create_system(config, W):
-    global dde_seed
-    dde.config.set_random_seed(dde_seed)
-
-    learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcl, w_bcr, w_ic = config
-    
-    geom = dde.geometry.Interval(0, 1)
-    timedomain = dde.geometry.TimeDomain(0, 2)
-    geomtime = dde.geometry.GeometryXTime(geom, timedomain)
-
-    bc_0 = dde.icbc.DirichletBC(geomtime, lambda x: 0, boundary_0)
-    bc_1 = dde.icbc.NeumannBC(geomtime, lambda x: -1, boundary_1)
-
-    ic = dde.icbc.IC(geomtime, lambda x: 0, lambda _, on_initial: on_initial)
-
-    data = dde.data.TimePDE(
-        geomtime, lambda x, theta: pde_s(x, theta, W), [bc_0, bc_1, ic], num_domain=2560, num_boundary=100, num_initial=160
-    )
-
-    net = dde.nn.FNN(
-        [2] + [num_dense_nodes] * num_dense_layers + [1],
-        activation,
-        initialization,
-    )
-
-
-    model = dde.Model(data, net)
-
-    loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
-
-    model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
-    return model
-
-
 def ic_obs(x):
     return x[:, 0:1] * (6/5 - x[:, 0:1])
 
 
+def bc0_obs(x, theta, X):
+    return x[:, 1:2] - theta
+
 
 def bc1_obs(x, theta, X):
     dtheta_x = dde.grad.jacobian(theta, x, i=0, j=0)
-    # return dtheta_x + x[:, 2:3] + k * theta - k * x[:, 1:2]
-    return dtheta_x - x[:, 2:3] - k * (x[:, 1:2] - theta) 
-
-
-
-def output_transform(x, y):
-    return x[:, 0:1] * y
-
+    return dtheta_x - x[:, 3:4] - k * (x[:, 2:3] - theta) 
 
 
 def create_observer(config, W):
@@ -204,13 +172,13 @@ def create_observer(config, W):
 
     learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcl, w_bcr, w_ic = config
 
-    xmin = [0, 0, -2]
-    xmax = [1, 1, 0]
-    geom = dde.geometry.Cuboid(xmin, xmax)
+    xmin = [0, 0, 0, -2]
+    xmax = [1, 1, 1, 0]
+    geom = dde.geometry.Hypercube(xmin, xmax)
     timedomain = dde.geometry.TimeDomain(0, 2)
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
-    bc_0 = dde.icbc.DirichletBC(geomtime, lambda x: 0, boundary_0)
+    bc_0 = dde.icbc.OperatorBC(geomtime, bc0_obs, boundary_0)
     bc_1 = dde.icbc.OperatorBC(geomtime, bc1_obs, boundary_1)
 
     ic = dde.icbc.IC(geomtime, ic_obs, lambda _, on_initial: on_initial)
@@ -220,17 +188,13 @@ def create_observer(config, W):
     )
 
     net = dde.nn.FNN(
-        [4] + [num_dense_nodes] * num_dense_layers + [1],
+        [5] + [num_dense_nodes] * num_dense_layers + [1],
         activation,
         initialization,
     )
 
-    # net.apply_output_transform(output_transform)
-
     model = dde.Model(data, net)
-
     loss_weights = [w_domain, w_bcl, w_bcr, w_ic]
-    
 
     model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
     return model
@@ -250,27 +214,38 @@ def train_model(model, name):
     return model
 
 
-def sup_theta(e):
-    x = np.linspace(0, 1, 101)
-    t = np.linspace(0, 1, 101)
-    X, T = np.meshgrid(x, t)
-    xsup = np.vstack((np.ones_like(np.ravel(T)), np.ravel(T))).T
-    xx = np.vstack((np.ravel(X), np.ravel(T))).T
-    a = e.predict(xsup).T
-    b = e.predict(xx).T
-    np.savez(f"{folder_path}pinns/sup_theta.npz", data=a)
-    np.savez(f"{folder_path}pinns/theta.npz", data=b)
-    # return a
-
 
 def gen_obsdata():
-    data = np.loadtxt(f"{folder_path}matlab/output_matlab_observer.txt")
-    supp_theta = np.load(f"{folder_path}pinns/sup_theta.npz")
-    sup_theta = supp_theta['data']
-    x, t, exact = data[:, 0:1].T, data[:, 1:2].T, data[:, 2:].T
-    fl = np.full_like(t, -1)
-    X = np.vstack((x, sup_theta, fl, t)).T
+    data = np.loadtxt(f"{folder_path}output_matlab_pde.txt")
+    x = data[:, 0:1]
+    x_end = np.min(x)
+    theta_end = data[data[:, 0] == x_end]
+
+    unique_x = np.unique(x)
+    sorted_unique_x = np.sort(unique_x)[::-1]
+    x_sup = sorted_unique_x[1]
+    theta_sup = data[data[:, 0] == x_sup]
+
+    x_max = np.max(x)
+    theta_extra = data[data[:, 0] == x_max]
+    fl = (theta_extra[:, 2:] - theta_sup[:, 2:])/(x_max - x_sup)
+
+    mask = data[:, 0] != x_max
+    data = data[mask, :]
+    x, t, exact = data[:, 0:1], data[:, 1:2], data[:, 2:]
     y = exact.flatten()[:, None]
+    num_rows = data.shape[0]
+    new_columns = np.zeros((num_rows, 3))
+    X = np.hstack((x, new_columns, t))
+
+    unique_t = np.unique(t)
+    for el in range(len(unique_t)):
+        a = X[X[:, 4] == unique_t[el]]
+        a[:, 1] = theta_end[el, 2:]
+        a[:, 2] = theta_sup[el, 2:]
+        a[:, 3] = fl[el]
+        X[X[:, 4] == unique_t[el]] = a
+
     return X, y
 
 
@@ -309,10 +284,15 @@ def restore_model(model, name):
     return model
 
 
-def configure_subplot(ax, surface):
-    x = np.linspace(0, 1, 101)
-    t = np.linspace(0, 1, 101)
-    X, T = np.meshgrid(x, t)
+def configure_subplot(ax, XS, surface):
+    # x = np.linspace(0, 1, 101)
+    # t = np.linspace(0, 1, 101)
+    # X, T = np.meshgrid(x, t)
+    la = len(np.unique(XS[:, 0:1]))
+    le = len(np.unique(XS[:, 1:]))
+    X = XS[:, 0:1].reshape(le, la)
+    T = XS[:, 1:].reshape(le, la)
+
     ax.plot_surface(X, T, surface, cmap='inferno', alpha=.8)
     ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -438,17 +418,16 @@ def plot_3d_obs(o):
     plt.savefig(f"{folder_path}figures/cfr_obs.png", dpi=300, bbox_inches='tight')
     plt.show()
 
-def plot_1obs(s, o):
+def plot_1obs(o):
     global output_path, dde_seed
     dde.config.set_random_seed(dde_seed)
 
     XO, y_true = gen_obsdata()
 
-    XS = np.delete(XO, [1, 2], axis=1)
-    sys = s.predict(XS)
+    XS = np.delete(XO, [1, 2, 3], axis=1)
+    sys = y_true
     obs = o.predict(XO)
 
-    ll = int(np.sqrt(len(y_true)))
 
     # Create 3D axes
     fig = plt.figure(figsize=(9, 4))
@@ -456,10 +435,15 @@ def plot_1obs(s, o):
     # Define column titles
     col_titles = ['System', 'Observer', 'Error']
 
+    ll = int(np.sqrt(len(y_true)))
+    la = len(np.unique(XS[:, 0:1]))
+    le = len(np.unique(XS[:, 1:]))
+
+
     # Define surfaces for each subplot
     surfaces = [
-        [sys.reshape(ll, ll), obs.reshape(ll, ll),
-         np.abs(sys - obs).reshape(ll, ll)]
+        [sys.reshape(le, la), obs.reshape(le, la),
+         np.abs(sys - obs).reshape(le, la)]
     ]
 
     # Create a grid of subplots
@@ -468,7 +452,7 @@ def plot_1obs(s, o):
     # Iterate over columns to add subplots
     for col in range(3):
         ax = fig.add_subplot(grid[0, col], projection='3d')
-        configure_subplot(ax, surfaces[0][col])
+        configure_subplot(ax, XS, surfaces[0][col])
 
         # Set column titles
         ax.set_title(col_titles[col], fontsize=8, y=.96, weight='semibold')
@@ -863,5 +847,5 @@ def plot_weights(x, t, lam):
 
 
 
-
+inizia()
 
