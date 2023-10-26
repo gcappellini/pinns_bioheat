@@ -7,8 +7,8 @@ m = 0;
 
 
 
-x = 0:0.01:1; % 100 valori tra 0 e 1
-t = 0:0.01:1; % 100 valori tra 0 e 1
+x = 0:0.25:1; % 10 valori tra 0 e 1
+t = 0:0.25:1; % 10 valori tra 0 e 1
 
 sol = pdepe(m,@OneDimBHpde,@OneDimBHic,@OneDimBHbc,x,t);
 % % Extract the first solution component as u.  This is not necessary
@@ -18,12 +18,12 @@ u2 = sol(:,:,2); %soluzione dell'osservatore 1
 
 % Print Solution PDE
 
-fileID = fopen('output_matlab_pde.txt','w');
+fileID = fopen('output_matlab_pde_short.txt','w');
 %fprintf(fileID,'%6s %12s\n','x','exp(x)');
 %fprintf(fileID,'%6.2f %12.8f %12.8f\n', t, x, u);
 
-for i = 1:101
-   for j = 1:101
+for i = 1:5
+   for j = 1:5
         
      fprintf(fileID,'%6.2f %6.2f %12.8f\n', x(j), t(i), u1(i,j));
         
@@ -32,12 +32,12 @@ end
 
 % Print solution observer
 
-fileID = fopen('output_matlab_observer.txt','w');
+fileID = fopen('output_matlab_observer_short.txt','w');
 %fprintf(fileID,'%6s %12s\n','x','exp(x)');
 %fprintf(fileID,'%6.2f %12.8f %12.8f\n', t, x, u);
 
-for i = 1:101
-   for j = 1:101
+for i = 1:5
+   for j = 1:5
         
      fprintf(fileID,'%6.2f %6.2f %12.8f\n', x(j), t(i), u2(i,j));
         
