@@ -28,7 +28,10 @@ emysphere = CSGIntersection(sphere, rectangle)
 geom = CSGUnion(emysphere, rectangle2)
 
 X0 = geom.random_points(5000)
-y = utils2.source(torch.Tensor(X0)).cpu()
+time_inst = 0.2
+add_time = np.full((X0.shape[0], 1), time_inst)
+X0t = np.hstack((X0, add_time))
+y = utils2.source(torch.Tensor(X0t)).cpu()
 # Create a figure and a 3D axis
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')

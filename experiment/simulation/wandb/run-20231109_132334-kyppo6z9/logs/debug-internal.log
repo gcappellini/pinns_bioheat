@@ -1,0 +1,224 @@
+2023-11-09 13:23:34,929 INFO    StreamThr :528970 [internal.py:wandb_internal():86] W&B internal server running at pid: 528970, started at: 2023-11-09 13:23:34.928430
+2023-11-09 13:23:34,932 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status
+2023-11-09 13:23:34,935 INFO    WriterThread:528970 [datastore.py:open_for_write():85] open: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/run-kyppo6z9.wandb
+2023-11-09 13:23:34,936 DEBUG   SenderThread:528970 [sender.py:send():369] send: header
+2023-11-09 13:23:34,936 DEBUG   SenderThread:528970 [sender.py:send():369] send: run
+2023-11-09 13:23:35,360 INFO    SenderThread:528970 [dir_watcher.py:__init__():211] watching files in: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files
+2023-11-09 13:23:35,360 INFO    SenderThread:528970 [sender.py:_start_run_threads():1100] run started: kyppo6z9 with start time 1699532614.440479
+2023-11-09 13:23:35,362 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: summary_record
+2023-11-09 13:23:35,362 INFO    SenderThread:528970 [sender.py:_save_file():1354] saving file wandb-summary.json with policy end
+2023-11-09 13:23:35,363 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: check_version
+2023-11-09 13:23:35,364 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: check_version
+2023-11-09 13:23:35,427 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: run_start
+2023-11-09 13:23:35,429 DEBUG   HandlerThread:528970 [system_info.py:__init__():31] System info init
+2023-11-09 13:23:35,429 DEBUG   HandlerThread:528970 [system_info.py:__init__():46] System info init done
+2023-11-09 13:23:35,429 INFO    HandlerThread:528970 [system_monitor.py:start():181] Starting system monitor
+2023-11-09 13:23:35,429 INFO    SystemMonitor:528970 [system_monitor.py:_start():145] Starting system asset monitoring threads
+2023-11-09 13:23:35,430 INFO    HandlerThread:528970 [system_monitor.py:probe():201] Collecting system info
+2023-11-09 13:23:35,432 INFO    SystemMonitor:528970 [interfaces.py:start():190] Started cpu monitoring
+2023-11-09 13:23:35,434 INFO    SystemMonitor:528970 [interfaces.py:start():190] Started disk monitoring
+2023-11-09 13:23:35,435 INFO    SystemMonitor:528970 [interfaces.py:start():190] Started gpu monitoring
+2023-11-09 13:23:35,435 INFO    SystemMonitor:528970 [interfaces.py:start():190] Started memory monitoring
+2023-11-09 13:23:35,436 INFO    SystemMonitor:528970 [interfaces.py:start():190] Started network monitoring
+2023-11-09 13:23:35,460 DEBUG   HandlerThread:528970 [system_info.py:probe():195] Probing system
+2023-11-09 13:23:35,460 DEBUG   HandlerThread:528970 [gitlib.py:_init_repo():53] git repository is invalid
+2023-11-09 13:23:35,460 DEBUG   HandlerThread:528970 [system_info.py:probe():240] Probing system done
+2023-11-09 13:23:35,460 DEBUG   HandlerThread:528970 [system_monitor.py:probe():210] {'os': 'Linux-5.15.0-88-generic-x86_64-with-glibc2.31', 'python': '3.9.16', 'heartbeatAt': '2023-11-09T12:23:35.460701', 'startedAt': '2023-11-09T12:23:34.438052', 'docker': None, 'cuda': None, 'args': (), 'state': 'running', 'program': '/home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/run.py', 'codePath': 'run.py', 'host': 'GPU-3090s2', 'username': 'giuglielmocappellini', 'executable': '/home/giuglielmocappellini/anaconda3/envs/pinns_env/bin/python', 'cpu_count': 8, 'cpu_count_logical': 16, 'cpu_freq': {'current': 3349.442125, 'min': 800.0, 'max': 5150.0}, 'cpu_freq_per_core': [{'current': 3500.0, 'min': 800.0, 'max': 5100.0}, {'current': 3500.0, 'min': 800.0, 'max': 5100.0}, {'current': 3500.0, 'min': 800.0, 'max': 5100.0}, {'current': 3500.0, 'min': 800.0, 'max': 5100.0}, {'current': 3500.0, 'min': 800.0, 'max': 5300.0}, {'current': 3500.0, 'min': 800.0, 'max': 5300.0}, {'current': 3500.0, 'min': 800.0, 'max': 5100.0}, {'current': 3500.0, 'min': 800.0, 'max': 5100.0}, {'current': 3500.0, 'min': 800.0, 'max': 5100.0}, {'current': 3500.0, 'min': 800.0, 'max': 5100.0}, {'current': 3500.0, 'min': 800.0, 'max': 5100.0}, {'current': 3500.0, 'min': 800.0, 'max': 5100.0}, {'current': 3500.0, 'min': 800.0, 'max': 5300.0}, {'current': 1091.074, 'min': 800.0, 'max': 5300.0}, {'current': 3500.0, 'min': 800.0, 'max': 5100.0}, {'current': 3500.0, 'min': 800.0, 'max': 5100.0}], 'disk': {'total': 914.6905212402344, 'used': 826.6765594482422}, 'gpu': 'NVIDIA GeForce RTX 3090', 'gpu_count': 1, 'gpu_devices': [{'name': 'NVIDIA GeForce RTX 3090', 'memory_total': 25769803776}], 'memory': {'total': 31.12656021118164}}
+2023-11-09 13:23:35,460 INFO    HandlerThread:528970 [system_monitor.py:probe():211] Finished collecting system info
+2023-11-09 13:23:35,460 INFO    HandlerThread:528970 [system_monitor.py:probe():214] Publishing system info
+2023-11-09 13:23:35,460 DEBUG   HandlerThread:528970 [system_info.py:_save_pip():51] Saving list of pip packages installed into the current environment
+2023-11-09 13:23:35,461 DEBUG   HandlerThread:528970 [system_info.py:_save_pip():67] Saving pip packages done
+2023-11-09 13:23:35,461 DEBUG   HandlerThread:528970 [system_info.py:_save_conda():74] Saving list of conda packages installed into the current environment
+2023-11-09 13:23:36,362 INFO    Thread-613:528970 [dir_watcher.py:_on_file_created():272] file/dir created: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/requirements.txt
+2023-11-09 13:23:36,362 INFO    Thread-613:528970 [dir_watcher.py:_on_file_created():272] file/dir created: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/wandb-summary.json
+2023-11-09 13:23:36,362 INFO    Thread-613:528970 [dir_watcher.py:_on_file_created():272] file/dir created: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/conda-environment.yaml
+2023-11-09 13:23:37,049 DEBUG   HandlerThread:528970 [system_info.py:_save_conda():86] Saving conda packages done
+2023-11-09 13:23:37,050 INFO    HandlerThread:528970 [system_monitor.py:probe():216] Finished publishing system info
+2023-11-09 13:23:37,050 DEBUG   SenderThread:528970 [sender.py:send():369] send: files
+2023-11-09 13:23:37,050 INFO    SenderThread:528970 [sender.py:_save_file():1354] saving file wandb-metadata.json with policy now
+2023-11-09 13:23:37,053 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: stop_status
+2023-11-09 13:23:37,055 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: stop_status
+2023-11-09 13:23:37,267 DEBUG   SenderThread:528970 [sender.py:send():369] send: telemetry
+2023-11-09 13:23:37,361 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/conda-environment.yaml
+2023-11-09 13:23:37,361 INFO    Thread-613:528970 [dir_watcher.py:_on_file_created():272] file/dir created: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:23:37,361 INFO    Thread-613:528970 [dir_watcher.py:_on_file_created():272] file/dir created: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/wandb-metadata.json
+2023-11-09 13:23:37,500 INFO    wandb-upload_0:528970 [upload_job.py:push():133] Uploaded file /tmp/tmpx7svr9e4wandb/raqrirun-wandb-metadata.json
+2023-11-09 13:23:39,361 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:23:40,268 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:23:43,362 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:23:45,882 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:23:47,363 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:23:49,363 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:23:51,766 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:23:52,053 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: stop_status
+2023-11-09 13:23:52,053 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: stop_status
+2023-11-09 13:23:53,364 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:23:57,365 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:23:57,543 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:01,366 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:03,430 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:05,367 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:07,053 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: stop_status
+2023-11-09 13:24:07,053 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: stop_status
+2023-11-09 13:24:09,267 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:09,367 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:10,368 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/config.yaml
+2023-11-09 13:24:13,368 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:15,171 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:17,369 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:20,951 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:21,370 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:22,053 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: stop_status
+2023-11-09 13:24:22,054 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: stop_status
+2023-11-09 13:24:25,370 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:26,845 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:29,371 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:32,628 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:33,372 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:35,436 DEBUG   SystemMonitor:528970 [system_monitor.py:_start():159] Starting system metrics aggregation loop
+2023-11-09 13:24:35,436 DEBUG   SenderThread:528970 [sender.py:send():369] send: stats
+2023-11-09 13:24:37,053 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: stop_status
+2023-11-09 13:24:37,053 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: stop_status
+2023-11-09 13:24:37,373 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:38,261 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:41,374 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:43,348 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:45,374 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:49,239 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:49,375 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:52,053 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: stop_status
+2023-11-09 13:24:52,053 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: stop_status
+2023-11-09 13:24:53,376 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:55,061 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:55,109 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: partial_history
+2023-11-09 13:24:55,110 DEBUG   SenderThread:528970 [sender.py:send():369] send: history
+2023-11-09 13:24:55,110 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: summary_record
+2023-11-09 13:24:55,110 INFO    SenderThread:528970 [sender.py:_save_file():1354] saving file wandb-summary.json with policy end
+2023-11-09 13:24:55,110 DEBUG   SenderThread:528970 [sender.py:send():369] send: telemetry
+2023-11-09 13:24:55,110 DEBUG   SenderThread:528970 [sender.py:send():369] send: exit
+2023-11-09 13:24:55,110 INFO    SenderThread:528970 [sender.py:send_exit():574] handling exit code: 0
+2023-11-09 13:24:55,110 INFO    SenderThread:528970 [sender.py:send_exit():576] handling runtime: 79
+2023-11-09 13:24:55,110 INFO    SenderThread:528970 [sender.py:_save_file():1354] saving file wandb-summary.json with policy end
+2023-11-09 13:24:55,111 INFO    SenderThread:528970 [sender.py:send_exit():582] send defer
+2023-11-09 13:24:55,111 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:55,111 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 0
+2023-11-09 13:24:55,111 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:55,111 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 0
+2023-11-09 13:24:55,111 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 1
+2023-11-09 13:24:55,111 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:55,111 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 1
+2023-11-09 13:24:55,111 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:55,111 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 1
+2023-11-09 13:24:55,111 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 2
+2023-11-09 13:24:55,111 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:55,111 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 2
+2023-11-09 13:24:55,111 INFO    HandlerThread:528970 [system_monitor.py:finish():190] Stopping system monitor
+2023-11-09 13:24:55,111 DEBUG   SystemMonitor:528970 [system_monitor.py:_start():166] Finished system metrics aggregation loop
+2023-11-09 13:24:55,112 DEBUG   SystemMonitor:528970 [system_monitor.py:_start():170] Publishing last batch of metrics
+2023-11-09 13:24:55,112 INFO    HandlerThread:528970 [interfaces.py:finish():202] Joined cpu monitor
+2023-11-09 13:24:55,112 INFO    HandlerThread:528970 [interfaces.py:finish():202] Joined disk monitor
+2023-11-09 13:24:55,130 INFO    HandlerThread:528970 [interfaces.py:finish():202] Joined gpu monitor
+2023-11-09 13:24:55,130 INFO    HandlerThread:528970 [interfaces.py:finish():202] Joined memory monitor
+2023-11-09 13:24:55,130 INFO    HandlerThread:528970 [interfaces.py:finish():202] Joined network monitor
+2023-11-09 13:24:55,131 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:55,131 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 2
+2023-11-09 13:24:55,131 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 3
+2023-11-09 13:24:55,131 DEBUG   SenderThread:528970 [sender.py:send():369] send: stats
+2023-11-09 13:24:55,131 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:55,131 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 3
+2023-11-09 13:24:55,131 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:55,131 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 3
+2023-11-09 13:24:55,131 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 4
+2023-11-09 13:24:55,131 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:55,131 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 4
+2023-11-09 13:24:55,132 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:55,132 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 4
+2023-11-09 13:24:55,132 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 5
+2023-11-09 13:24:55,132 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:55,132 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 5
+2023-11-09 13:24:55,132 DEBUG   SenderThread:528970 [sender.py:send():369] send: summary
+2023-11-09 13:24:55,132 INFO    SenderThread:528970 [sender.py:_save_file():1354] saving file wandb-summary.json with policy end
+2023-11-09 13:24:55,132 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:55,132 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 5
+2023-11-09 13:24:55,132 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 6
+2023-11-09 13:24:55,132 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:55,132 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 6
+2023-11-09 13:24:55,133 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:55,133 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 6
+2023-11-09 13:24:55,135 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: status_report
+2023-11-09 13:24:55,346 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 7
+2023-11-09 13:24:55,347 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:55,347 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 7
+2023-11-09 13:24:55,348 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:55,348 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 7
+2023-11-09 13:24:55,377 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/config.yaml
+2023-11-09 13:24:55,377 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/wandb-summary.json
+2023-11-09 13:24:56,110 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: poll_exit
+2023-11-09 13:24:57,362 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 8
+2023-11-09 13:24:57,362 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: poll_exit
+2023-11-09 13:24:57,363 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:57,363 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 8
+2023-11-09 13:24:57,364 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:57,364 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 8
+2023-11-09 13:24:57,364 INFO    SenderThread:528970 [job_builder.py:build():232] Attempting to build job artifact
+2023-11-09 13:24:57,364 INFO    SenderThread:528970 [job_builder.py:build():266] no source found
+2023-11-09 13:24:57,365 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 9
+2023-11-09 13:24:57,365 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:57,365 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 9
+2023-11-09 13:24:57,366 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:57,366 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 9
+2023-11-09 13:24:57,366 INFO    SenderThread:528970 [dir_watcher.py:finish():359] shutting down directory watcher
+2023-11-09 13:24:57,378 INFO    Thread-613:528970 [dir_watcher.py:_on_file_modified():289] file/dir modified: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:57,379 INFO    SenderThread:528970 [dir_watcher.py:finish():389] scan: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files
+2023-11-09 13:24:57,379 INFO    SenderThread:528970 [dir_watcher.py:finish():403] scan save: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/config.yaml config.yaml
+2023-11-09 13:24:57,379 INFO    SenderThread:528970 [dir_watcher.py:finish():403] scan save: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/wandb-summary.json wandb-summary.json
+2023-11-09 13:24:57,385 INFO    SenderThread:528970 [dir_watcher.py:finish():403] scan save: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/wandb-metadata.json wandb-metadata.json
+2023-11-09 13:24:57,386 INFO    SenderThread:528970 [dir_watcher.py:finish():403] scan save: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/requirements.txt requirements.txt
+2023-11-09 13:24:57,386 INFO    SenderThread:528970 [dir_watcher.py:finish():403] scan save: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log output.log
+2023-11-09 13:24:57,386 INFO    SenderThread:528970 [dir_watcher.py:finish():403] scan save: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/conda-environment.yaml conda-environment.yaml
+2023-11-09 13:24:57,386 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 10
+2023-11-09 13:24:57,388 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:57,388 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 10
+2023-11-09 13:24:57,404 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:57,404 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 10
+2023-11-09 13:24:57,404 INFO    SenderThread:528970 [file_pusher.py:finish():159] shutting down file pusher
+2023-11-09 13:24:57,823 INFO    wandb-upload_1:528970 [upload_job.py:push():133] Uploaded file /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/wandb-summary.json
+2023-11-09 13:24:57,879 INFO    wandb-upload_0:528970 [upload_job.py:push():133] Uploaded file /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/config.yaml
+2023-11-09 13:24:57,920 INFO    wandb-upload_4:528970 [upload_job.py:push():133] Uploaded file /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/conda-environment.yaml
+2023-11-09 13:24:57,990 INFO    wandb-upload_3:528970 [upload_job.py:push():133] Uploaded file /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/output.log
+2023-11-09 13:24:57,995 INFO    wandb-upload_2:528970 [upload_job.py:push():133] Uploaded file /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/files/requirements.txt
+2023-11-09 13:24:58,196 INFO    Thread-612:528970 [sender.py:transition_state():602] send defer: 11
+2023-11-09 13:24:58,197 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:58,197 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 11
+2023-11-09 13:24:58,198 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:58,198 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 11
+2023-11-09 13:24:58,198 INFO    SenderThread:528970 [file_pusher.py:join():164] waiting for file pusher
+2023-11-09 13:24:58,198 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 12
+2023-11-09 13:24:58,199 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:58,199 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 12
+2023-11-09 13:24:58,200 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:58,200 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 12
+2023-11-09 13:24:58,388 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 13
+2023-11-09 13:24:58,389 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:58,389 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 13
+2023-11-09 13:24:58,390 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:58,390 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 13
+2023-11-09 13:24:58,390 INFO    SenderThread:528970 [sender.py:transition_state():602] send defer: 14
+2023-11-09 13:24:58,391 DEBUG   SenderThread:528970 [sender.py:send():369] send: final
+2023-11-09 13:24:58,391 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: defer
+2023-11-09 13:24:58,391 DEBUG   SenderThread:528970 [sender.py:send():369] send: footer
+2023-11-09 13:24:58,392 INFO    HandlerThread:528970 [handler.py:handle_request_defer():170] handle defer: 14
+2023-11-09 13:24:58,393 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: defer
+2023-11-09 13:24:58,393 INFO    SenderThread:528970 [sender.py:send_request_defer():598] handle sender defer: 14
+2023-11-09 13:24:58,394 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: poll_exit
+2023-11-09 13:24:58,395 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: server_info
+2023-11-09 13:24:58,395 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: get_summary
+2023-11-09 13:24:58,396 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: sampled_history
+2023-11-09 13:24:58,397 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: poll_exit
+2023-11-09 13:24:58,397 DEBUG   SenderThread:528970 [sender.py:send_request():396] send_request: server_info
+2023-11-09 13:24:58,701 DEBUG   HandlerThread:528970 [handler.py:handle_request():144] handle_request: shutdown
+2023-11-09 13:24:58,701 INFO    HandlerThread:528970 [handler.py:finish():854] shutting down handler
+2023-11-09 13:24:59,397 INFO    WriterThread:528970 [datastore.py:close():298] close: /home/giuglielmocappellini/Projects/PINNs/z_3d/simulation/wandb/run-20231109_132334-kyppo6z9/run-kyppo6z9.wandb
+2023-11-09 13:24:59,700 INFO    SenderThread:528970 [sender.py:finish():1526] shutting down sender
+2023-11-09 13:24:59,700 INFO    SenderThread:528970 [file_pusher.py:finish():159] shutting down file pusher
+2023-11-09 13:24:59,700 INFO    SenderThread:528970 [file_pusher.py:join():164] waiting for file pusher

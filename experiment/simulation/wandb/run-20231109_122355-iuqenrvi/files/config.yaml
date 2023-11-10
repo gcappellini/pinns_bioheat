@@ -1,0 +1,57 @@
+wandb_version: 1
+
+learning rate:
+  desc: null
+  value: 1.344796806422633e-05
+num_dense_layers:
+  desc: null
+  value: 5
+num_dense_nodes:
+  desc: null
+  value: 60
+activation:
+  desc: null
+  value: tanh
+initialization:
+  desc: null
+  value: He normal
+w_domain:
+  desc: null
+  value: 39
+w_bc0:
+  desc: null
+  value: 111
+w_bc1:
+  desc: null
+  value: 116
+w_ic:
+  desc: null
+  value: 57
+_wandb:
+  desc: null
+  value:
+    python_version: 3.9.16
+    cli_version: 0.15.4
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1699529035.814678
+    t:
+      1:
+      - 1
+      - 5
+      - 53
+      - 55
+      2:
+      - 1
+      - 5
+      - 53
+      - 55
+      3:
+      - 2
+      - 16
+      - 23
+      4: 3.9.16
+      5: 0.15.4
+      8:
+      - 5
