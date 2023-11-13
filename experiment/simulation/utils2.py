@@ -61,8 +61,8 @@ a1 = (alfa * (L0 ** 2)) / tauf
 a3 = (L0 ** 2) / (k * dT)
 
 # Antenna parameters
-# beta, aa, bb, cc, p = 1, 64, 111, 16, 150
-beta, aa, bb, cc, p = 100, 640, 1111, 16, 750
+beta, aa, bb, cc, p = 100, 64, 111, 16, 275
+# beta, aa, bb, cc, p = 100, 640, 1111, 16, 340
 X0, Y0, Z0 = 0.5, 0.5, 0.994
 
 # Observer parameter
@@ -87,7 +87,7 @@ timedomain = dde.geometry.TimeDomain(0, max_t)
 geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
 # HPO setting
-n_calls = 500
+n_calls = 100
 dim_learning_rate = Real(low=0.000012774471609203795, high=0.21788060459464648, name="learning_rate", prior="log-uniform")
 dim_num_dense_layers = Integer(low=1, high=8, name="num_dense_layers")
 dim_num_dense_nodes = Integer(low=7, high=384, name="num_dense_nodes")
@@ -176,7 +176,7 @@ def step2(x):
 
 
 def source(s):
-    ss = qmet + beta*step(s[:, 3:])*p*torch.exp(-L0**2*(aa*(s[:, 0:1]-X0)**2+bb*(s[:, 1:2]-Y0)**2+cc*(Z0/s[:, 2:3])))
+    ss = qmet + beta*step(s[:, 3:])*p*torch.exp(-L0**2*(aa*(s[:, 0:1]-X0)**2+bb*(s[:, 1:2]-Y0)**2+cc*(Z0-s[:, 2:3])))
     return ss.reshape(len(s), 1)
     # return 0
 
@@ -231,6 +231,61 @@ def create_system(config):
     return model
 
 
+def source_1d(s):
+    ss = qmet + beta*step(s[:, 1:])*p*torch.exp(-L0**2*(cc*(Z0-s[:, 0:1])))
+    return ss.reshape(len(s), 1)
+    # return 0
+
+def pde_1d(x, theta):
+    dtheta_tau = dde.grad.jacobian(theta, x, i=0, j=1)
+    dtheta_xx = dde.grad.hessian(theta, x, i=0, j=0)
+    return a1 * dtheta_tau - dtheta_xx - a3 * source_1d(x)
+
+
+def boundary_1d(x, on_boundary):
+    return on_boundary and np.isclose(x[0], 0)
+
+
+def boundary_1u(x, on_boundary):
+    return on_boundary and np.isclose(x[0], 1)
+
+
+def create_system1d(config):
+    global dde_seed
+    dde.config.set_random_seed(dde_seed)
+
+    learning_rate, num_dense_layers, num_dense_nodes, activation, initialization, w_domain, w_bcd, w_bcu, w_ic = config
+
+    geom_1d = dde.geometry.Interval(0, 1)
+    timedomain_1d = dde.geometry.TimeDomain(0, max_t)
+    geomtime_1d = dde.geometry.GeometryXTime(geom_1d, timedomain_1d)
+
+    bc_d = dde.icbc.RobinBC(geomtime_1d, lambda X, y: - (h_down/k)*step2(y), boundary_1d)
+    bc_u = dde.icbc.RobinBC(geomtime_1d, lambda X, y: - (h_up/k)*step2(y), boundary_1u)
+
+    ic = dde.icbc.IC(
+        geomtime_1d,
+        lambda x: 0,
+        lambda _, on_initial: on_initial,
+    )
+
+    data = dde.data.TimePDE(
+        geomtime_1d, pde_1d, [bc_d, bc_u, ic], num_domain=2560, num_boundary=100, num_initial=160
+    )
+
+    net = dde.nn.FNN(
+        [2] + [num_dense_nodes] * num_dense_layers + [1],
+        activation,
+        initialization,
+    )
+
+    model = dde.Model(data, net)
+    loss_weights = [w_domain, w_bcd, w_bcu, w_ic]
+
+    model.compile("adam", lr=learning_rate, loss_weights=loss_weights)
+    return model
+
+
 def train_model(model, name):
     global dde_seed, output_path
     dde.config.set_random_seed(dde_seed)
@@ -251,6 +306,7 @@ def restore_model(model, name):
 
     model.restore(f"{folder_path}model/{name}.ckpt-{epochs}.pt", verbose=0)
     return model
+
 
 def plot(o, time_inst):
     global output_path, dde_seed
@@ -441,7 +497,7 @@ def configure_subplot(ax, XS, surface):
     ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     ax.tick_params(axis='both', labelsize=7, pad=2)
     ax.dist = 10
-    ax.view_init(20, -120)
+    ax.view_init(20, -60)
 
 
 def plot_1obs(s, o, n_guide):
@@ -576,6 +632,55 @@ def plot_1obs_l2(s, o, n_guide):
     plt.show()
 
 
+def plot_needle_1d(model, model1d):
+    global output_path, dde_seed
+    dde.config.set_random_seed(dde_seed)
+
+    size = 100
+    z = np.linspace(0, 1, num=size)
+    t = np.linspace(0, max_t, num=size)
+    ZZ, TT = np.meshgrid(z, t)
+    x_coord, y_coord = np.full_like(np.ravel(ZZ), 0.5), np.full_like(np.ravel(ZZ), 0.5)
+
+    X_needle = np.vstack((x_coord, y_coord, np.ravel(ZZ), np.ravel(TT))).T
+    needle = model.predict(X_needle)
+    N = needle.reshape(size,size)
+    XS = np.vstack((np.ravel(ZZ), np.ravel(TT))).T
+    needle_1d = model1d.predict(XS)
+    N_1d = needle_1d.reshape(size,size)
+
+    # Create 3D axes
+    fig = plt.figure(figsize=(9, 4))
+
+    # Define column titles
+    col_titles = ['System 3D', 'System 1D', 'Error']
+
+
+    # Define surfaces for each subplot
+    surfaces = [
+        [N, N_1d,
+         np.abs(N - N_1d)]
+    ]
+
+    # Create a grid of subplots
+    grid = plt.GridSpec(1, 3)
+
+    # Iterate over columns to add subplots
+    for col in range(3):
+        ax = fig.add_subplot(grid[0, col], projection='3d')
+        configure_subplot(ax, XS, surfaces[0][col])
+
+        # Set column titles
+        ax.set_title(col_titles[col], fontsize=8, y=.96, weight='semibold')
+
+    # Adjust spacing between subplots
+    plt.subplots_adjust(wspace=0.15)
+
+    # Save and show plot
+    plt.savefig(f"{folder_path}figures/plot_cfr_sys_ang.png", dpi=300, bbox_inches='tight')
+    plt.show()
+
+
 def l2_penalty(s, o, n_guide):
     l2_k0 = []
 
@@ -597,7 +702,7 @@ def l2_penalty(s, o, n_guide):
         XOt = tot[tot[:, 4]==t]
         ss = XOt[:, 5:]
         oo = o.predict(XOt[:, :5])
-        l2_k0.append(t*dde.metrics.l2_relative_error(ss, oo))
+        l2_k0.append(dde.metrics.l2_relative_error(ss, oo))
     
     return np.linalg.norm(l2_k0)
 
@@ -614,7 +719,7 @@ def fitness(learning_rate, num_dense_layers, num_dense_nodes, activation, initia
     # start a new wandb run to track this script
     wandb.init(
         # set the wandb project where this run will be logged
-        project="obs-simulation",
+        project="obs-simulation2",
 
         # track hyperparameters and run metadata
         config={
